@@ -1,0 +1,85 @@
+# HRS-bot scenario. ØVING. Alle personer og personopplysninger er FIKTIVE.
+# Fødselsnummer er syntetisk (måned + 80, samme format som Skatteetatens testnumre)
+# og kan ikke tilhøre en virkelig person.
+
+id: case02
+tittel: "Savnet gutt, 11 år, Norefjell"
+merking: ØVING
+savnetkategori: "Barn 10-12 år (alder), på fjelltur"
+hastegrad: "Høy. Barn, mørke om ca. 2 timer, våte klær og fallende temperatur."
+avstand_fra_rygge: "68 NM, peiling 324° fra ENRY. Minst 77 NM fra svenskegrensen."
+inspirasjon:
+  - "Jente på 9-10 år ble borte fra far og bror på fjelltur nord for Straumsfjorden og ble funnet av Sea King etter ca. ett døgn, kald men i god form (Dagbladet, 2004): https://www.dagbladet.no/nyheter/jublet-da-10-aring-ble-funnet/65972129"
+  - "15-åring savnet i Jotunheimen tok seg opp på en topp da han skjønte at noen lette, og ble funnet av redningshelikopter (Dagbladet): https://www.dagbladet.no/nyheter/savnet-15-aring-funnet-i-god-behold/66496681"
+  - "Personene og forløpet i dette scenariet er fiktive."
+
+klokke:
+  scenariostart: "D-dag 16:55"
+  mørkt: "fra ca. 18:45"
+
+kjent_ved_varsling:
+  oppdrag: "Søk etter savnet gutt, 11 år, Norefjell, mellom Høgevard og Tempelseterfeltet, Sigdal/Krødsherad."
+  rekvirent: "Sør-Øst politidistrikt via HRS Sør-Norge"
+  savnet:
+    navn: "Elias Tveiten"
+    kjønn: gutt
+    alder: 11
+    bosted: "Drammen. Familien har hytte i Tempelseterfeltet."
+  ipp:
+    type: "Sist sett"
+    sted: "Stien vest for Høgevard-toppen, ca. 600 m fra varden, på vei ned mot Langås"
+    posisjon: "N60°17.64' E009°27.42'"
+    tid: "D-dag 15:40"
+  meldt_savnet: "D-dag 16:35 av far via 112"
+  vær: "Tåke ned mot ca. 1200 moh (toppen er 1459 moh), lett sludd, vind V 8 m/s, +1 °C på toppen. Under skydekket brukbar sikt."
+  terreng: "Snaufjell over ca. 1000 moh, blåbærlyng og stein. Bjørkeskog og granskog lavere ned. Bekkedaler mot nord og vest."
+  andre_ressurser:
+    - "Politipatrulje på vei, innsatsleder tidligst 17:30"
+    - "Sigdal Røde Kors Hjelpekorps, 1 lag, ankomst ca. 17:45"
+    - "Krødsherad Røde Kors, 1 lag og snøscooter, ankomst ca. 18:00"
+    - "Hyttenaboer leter langs stien på eget initiativ (uorganiserte frivillige)"
+  samband: "SAR-talegruppe SAR NORE 1 (fiktiv) på Nødnett. VHF 123,10 som tillegg."
+  oppgave: "Søk fra IPP langs stien mot Langås og Tempelseterfeltet, deretter bekkedalene nord og vest for toppen."
+
+kjent_på_spørsmål:
+  signalement: "1,45 m, tynn, kort lyst hår"
+  bekledning: "Blå softshelljakke, svart turbukse, grønn strikkelue, grå joggesko (ikke fjellstøvler), ingen votter. Antatt våt på beina."
+  utstyr: "Liten sekk med drikkeflaske og en sjokolade. Ingen hodelykt, ingen ekstra klær."
+  mobil: "Har mobil, men den var på 8 % batteri ved toppen. Svarer ikke. Siste kontakt med far: SMS 'jeg løper ned først' 15:42."
+  sist_sett: "Far så ham løpe i forveien på stien ned fra varden i tåka 15:40. Far brukte ca. 20 minutter ned, og gutten var ikke på hytta."
+  rute: "Gikk fra hytta i Tempelseterfeltet via Langås til Høgevard og skulle samme vei tilbake. Ca. 5 km hver vei."
+  helse: "Frisk. Astma, med inhalator i sekken."
+  personlighet: "Sporty og selvstendig. Kan bli redd og stille om han tror han har gjort noe galt. Har vært på Norefjell mange ganger, men aldri alene i tåke."
+  tidligere_hendelser: "Ingen."
+  fødselsnummer: "09821573197 (syntetisk)"
+  pårørende: "Far Martin Tveiten, mobil 400 00 001 (fiktivt nummer). Mor er på hytta."
+
+ukjent:
+  - "Om han har hørt rop fra leteteamene"
+  - "Hvor mye batteri mobilen har nå"
+
+innspill:
+  - t: "+15 min"
+    tekst: "Hyttenabo fant en sjokoladepapir på stien ved Høgvardebekken, nordvest for toppen, ca. 1 km fra IPP. Usikkert om det er guttens."
+  - t: "+30 min"
+    tekst: "Mor melder at gutten pleier å kjøpe akkurat denne sjokoladen. Teleoperatør gir posisjon fra 16:58 med usikkerhet 1,5 km, sentrert nord for toppen."
+  - utløser: instruktør
+    tekst: "Tåka letter over Høgvardebekken i 20 minutter."
+  - utløser: instruktør
+    tekst: "Mobilen har gått tom for strøm. Ingen flere posisjoner."
+
+fasit:   # Bare for instruktør. Boten skal aldri gi dette før funn.
+  funnsted: "N60°18.63' E009°25.92', ved Høgvardebekken i tregrensa, ca. 2,3 km nordvest for IPP. Gikk ned feil side av fjellet i tåka og fulgte bekken."
+  tilstand: "I live, våt, kald og redd. Sitter under en gran. Svarer ikke på rop fordi han tror han får kjeft, men vinker når helikopteret kommer lavt."
+  funnet_av: "Helikopterets varmesøkende kamera langs bekkedalen. Bakkemannskap ville tidligst nådd stedet etter ca. 90 minutter."
+  læringspunkter:
+    - "Spurte besetningen om bekledning, fottøy, lykt og mobilbatteri tidlig?"
+    - "Ble ledelinjer (bekker, stier) og retningsfeil i tåke vurdert, ikke bare planlagt rute?"
+    - "Ble sjokoladepapiret og mobilposisjonen brukt til å flytte søksområdet?"
+    - "Ble faren for at barnet ikke svarer på rop tatt med i valget av søksmetode?"
+    - "Ble mørke, tåke og sludd vurdert for egen flyging og vinsjing?"
+    - "Ble uorganiserte frivillige i området meldt til HRS, og ble de koordinert?"
+
+kilder:
+  - "https://www.hovedredningssentralen.no/wp-content/uploads/2026/08/Sok-etter-savnet-pa-land-nett.pdf"
+  - "Stedsnavn og posisjoner: Kartverket, ws.geonorge.no/stedsnavn (Høgevard, Langås, Tempelseterfeltet, Høgvardebekken). Funnsted og IPP er satt mellom navngitte punkter og bør sjekkes mot kart."

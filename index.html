@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HRS">
+</head>
+<body>
+<meta charset="utf-8">
+<title>HRS Sambandsøving</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: cockpit radio panel on the left (status display, PTT, traffic log), instructor rack on the right; stacks at phone width. */
+:root{
+  --bg:#E9EDF0; --panel:#FFFFFF; --ink:#13202A; --muted:#5A6874; --line:#CFD7DD;
+  --accent:#D9531E; --accent-ink:#FFFFFF; --accent-soft:#F8E3D8;
+  --live:#1D8A56; --live-soft:#DDF1E6; --warn:#A66A12;
+  --display:#0D171D; --display-line:#24343E; --display-ink:#A8F0BE; --display-dim:#5F8A72; --display-amber:#FFB547;
+  --font-ui:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1216; --panel:#141C22; --ink:#E4EAEE; --muted:#93A1AC; --line:#25313A;
+  --accent:#FF7A3D; --accent-ink:#1A0D06; --accent-soft:#3A2116;
+  --live:#3CCB85; --live-soft:#14301F; --warn:#E3A33B;
+  --display:#071014; --display-line:#1D2C34; --display-ink:#A8F0BE; --display-dim:#5F8A72; --display-amber:#FFB547;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1216; --panel:#141C22; --ink:#E4EAEE; --muted:#93A1AC; --line:#25313A;
+  --accent:#FF7A3D; --accent-ink:#1A0D06; --accent-soft:#3A2116;
+  --live:#3CCB85; --live-soft:#14301F; --warn:#E3A33B;
+  --display:#071014; --display-line:#1D2C34; --display-ink:#A8F0BE; --display-dim:#5F8A72; --display-amber:#FFB547;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;margin:0;padding-inline:16px;padding-block:16px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--font-ui);font-weight:700;font-size:26px;letter-spacing:.01em;margin:0;text-wrap:balance}
+.drill{font-family:var(--font-ui);font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--accent);border:1.5px solid var(--accent);border-radius:4px;padding:1px 8px}
+.chip{font-family:var(--font-ui);font-weight:600;font-size:14px;letter-spacing:.03em;padding:4px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.ok .dot{background:var(--live)} .chip.bad .dot{background:var(--accent)}
+.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.label{font-family:var(--font-ui);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
+h2{font-family:var(--font-ui);font-weight:700;font-size:19px;margin:0}
+/* radio display */
+.display{background:var(--display);border:1px solid var(--display-line);border-radius:8px;padding:14px 16px;color:var(--display-ink);font-family:var(--font-mono);display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:center}
+.display .state{font-family:var(--font-ui);font-weight:700;font-size:28px;letter-spacing:.08em}
+.display .state.tx{color:var(--display-amber)}
+.display .meta{font-size:13px;color:var(--display-dim);grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 18px}
+.display .meta b{color:var(--display-ink);font-weight:500}
+.display .clock{font-size:26px;font-variant-numeric:tabular-nums;text-align:right}
+.display .interim{grid-column:1/-1;min-height:1.4em;font-size:14px;color:var(--display-amber);overflow-wrap:anywhere}
+.pttrow{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.ptt{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;flex:1 1 260px;min-height:88px;border-radius:12px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--font-ui);font-weight:700;font-size:22px;letter-spacing:.08em;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ptt small{font-family:var(--font-body);font-weight:500;font-size:13px;letter-spacing:0;opacity:.85}
+.ptt.on{background:var(--live);border-color:var(--live);color:#fff}
+.ptt:disabled{opacity:.45;cursor:not-allowed}
+.ptt:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.typed{display:flex;gap:8px;flex-wrap:wrap}
+.typed input{flex:1 1 220px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+textarea{resize:vertical;min-height:64px}
+button.btn{font-family:var(--font-ui);font-weight:600;font-size:15px;letter-spacing:.03em;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;cursor:pointer;white-space:nowrap}
+button.btn.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+button.btn.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+.notice{font-size:14px;border-radius:8px;padding:10px 12px;background:var(--accent-soft);color:var(--ink);border:1px solid var(--line)}
+.notice.ok{background:var(--live-soft)}
+/* traffic log */
+.log{font-family:var(--font-mono);font-size:13.5px;display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;padding-right:4px}
+.entry{display:grid;grid-template-columns:52px 104px minmax(0,1fr);gap:8px;align-items:baseline}
+.entry .t{color:var(--muted);font-variant-numeric:tabular-nums}
+.entry .who{font-family:var(--font-ui);font-weight:700;letter-spacing:.06em;font-size:13px}
+.entry.hrs .who{color:var(--accent)} .entry.crew .who{color:var(--live)} .entry.instr .who{color:var(--warn)}
+.entry .txt{font-family:var(--font-body);font-size:14.5px;overflow-wrap:anywhere}
+.entry.instr .txt{color:var(--muted);font-style:italic}
+@media (max-width:520px){.entry{grid-template-columns:44px minmax(0,1fr)}.entry .who{grid-column:2}.entry .txt{grid-column:1/-1}}
+.empty{color:var(--muted);font-size:14px}
+/* instructor */
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.scen-card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.scen-card .k{color:var(--muted)}
+.inj{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.inj li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:start;border-top:1px solid var(--line);padding-top:8px;font-size:14px}
+.inj .when{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+.inj li.sent{opacity:.6}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+summary{cursor:pointer;font-family:var(--font-ui);font-weight:600;font-size:15px;letter-spacing:.02em}
+details[open] summary{margin-bottom:8px}
+.fasit{font-size:14px;display:flex;flex-direction:column;gap:6px}
+.fasit ul{margin:0;padding-left:18px}
+.debrief{white-space:pre-wrap;font-size:14.5px;border-left:3px solid var(--warn);padding-left:12px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.field span{color:var(--muted)}
+.help{font-size:13.5px;color:var(--muted)}
+.help a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.ptt{transition:background .12s,border-color .12s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>HRS Sambandsøving</h1><span class="drill">ØVING</span></div>
+    <div class="row">
+      <span class="chip" id="engineChip"><span class="dot"></span><span id="engineTxt">Kobler til …</span></span>
+      <span class="chip" id="micChip"><span class="dot"></span><span id="micTxt">Mikrofon ikke testet</span></span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Samband">
+      <div class="display" aria-live="polite">
+        <div class="state" id="stateTxt">KLAR</div>
+        <div class="clock" id="clockTxt">--:--</div>
+        <div class="meta"><span>KANAL <b id="tgTxt">–</b></span><span>KALLESIGNAL <b id="csTxt">–</b></span><span>OPPDRAG <b id="scTxt">ikke startet</b></span></div>
+        <div class="interim" id="interimTxt"></div>
+      </div>
+
+      <div class="pttrow">
+        <button class="ptt" id="ptt" type="button" disabled>SNAKK<small id="pttHint">Start et oppdrag først</small></button>
+      </div>
+      <div class="notice" id="micNotice" hidden></div>
+      <form class="typed" id="typedForm">
+        <input id="typedIn" type="text" autocomplete="off" placeholder="Eller skriv meldingen her og trykk Send" aria-label="Skriv melding til HRS" disabled>
+        <button class="btn primary" type="submit" id="typedBtn" disabled>Send</button>
+      </form>
+
+      <div class="row" style="justify-content:space-between">
+        <p class="label">Sambandslogg</p>
+        <div class="row"><button class="btn" type="button" id="repeatBtn" disabled>Gjenta siste HRS</button><button class="btn" type="button" id="copyBtn">Kopier logg</button></div>
+      </div>
+      <div class="log" id="log"><p class="empty">Velg et oppdrag til høyre og trykk Start. HRS kaller dere opp med oppdraget.</p></div>
+    </section>
+
+    <aside class="panel" aria-label="Instruktør">
+      <h2>Instruktør</h2>
+      <label class="field"><span>Oppdrag</span><select id="scenSel"></select></label>
+      <div class="scen-card" id="scenCard"></div>
+      <div class="row">
+        <button class="btn accent" type="button" id="startBtn">Start oppdrag</button>
+        <button class="btn" type="button" id="stopBtn" disabled>Avslutt</button>
+      </div>
+
+      <div>
+        <p class="label">Innspill underveis</p>
+        <ul class="inj" id="injList"></ul>
+      </div>
+      <form class="typed" id="freeInjForm">
+        <input id="freeInj" type="text" autocomplete="off" placeholder="Eget innspill, f.eks. «vind øker til 15 m/s»" aria-label="Eget innspill" disabled>
+        <button class="btn" type="submit" id="freeInjBtn" disabled>Send innspill</button>
+      </form>
+
+      <details id="fasitBox"><summary>Fasit (bare for instruktør)</summary><div class="fasit" id="fasit"></div></details>
+
+      <div class="row"><button class="btn" type="button" id="debriefBtn" disabled>Lag debrief</button></div>
+      <div class="debrief" id="debrief" hidden></div>
+
+      <details id="settings"><summary>Innstillinger</summary>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <label class="field"><span>Helikopterets kallesignal</span><input id="callsign" type="text" value="Rescue 330"></label>
+          <label class="field"><span>Stemme for HRS</span><select id="voiceSel"></select></label>
+          <label class="field"><span>Talehastighet: <b id="rateTxt">1,05</b></span><input id="rate" type="range" min="0.8" max="1.3" step="0.05" value="1.05"></label>
+          <div id="keyBox" hidden>
+            <label class="field"><span>Claude API-nøkkel (lagres bare i denne nettleseren)</span><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+            <p class="help">Lag nøkkelen på <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Del aldri fila med nøkkelen lagret i nettleseren.</p>
+          </div>
+          <p class="help">PC: bruk Microsoft Edge, som har naturlige norske stemmer (Finn, Pernille, Iselin). iPhone og iPad: bruk Safari, og last ned den forbedrede norske stemmen under Innstillinger, Tilgjengelighet, Opplest innhold, Stemmer, Norsk. Bruk headset eller AirPods for best lyd.</p>
+        </div>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<script>
+const SCENARIOS = [{"id": "case01", "tittel": "Savnet kvinne med økt selvmordsrisiko, Krokskogen", "merking": "ØVING", "savnetkategori": "Person med økt selvmordsrisiko (mental status)", "hastegrad": "Nødssituasjon. Rask førsteinnsats prioriteres.", "avstand_fra_rygge": "43 NM, peiling 341° fra ENRY. Minst 48 NM fra svenskegrensen.", "inspirasjon": ["Typisk mønster fra veileder 'Redningstjeneste og personer i selvmordsrisiko' (Norsk Folkehjelp): bil funnet ved utsiktspunkt, savnede går kort fra bilen, holder seg nær sti, søker betydningsfulle steder.", "Sakene er satt sammen fritt; ingen virkelig hendelse eller person er gjengitt."], "klokke": {"scenariostart": "D-dag 20:40", "mørkt": "fra ca. 18:45"}, "kjent_ved_varsling": {"oppdrag": "Søk etter savnet kvinne, Krokskogen, Hole kommune. Fokus på lia under Kongens og Dronningens utsikt.", "rekvirent": "Sør-Øst politidistrikt via HRS Sør-Norge", "savnet": {"navn": "Kari Anne Sletten", "kjønn": "kvinne", "alder": 52, "bosted": "Sandvika, Bærum"}, "ipp": {"type": "Funn av bil (sist kjente punkt)", "sted": "Parkeringsplassen ved Kleivstua, Krokkleiva", "posisjon": "N60°02.81' E010°19.29'", "tid_bil_funnet": "D-dag 20:05, av vekter ved Kleivstua"}, "meldt_savnet": "D-dag 19:30 av ektemann, etter at søsteren fikk en bekymringsfull SMS kl. 17:52", "vær": "Overskyet, regnbyger, vind S 6 m/s, +5 °C, skydekke ca. 2500 ft, sikt over 10 km utenom byger. Mørkt.", "terreng": "Bratt li og stup fra Kongens og Dronningens utsikt ned mot Steinsfjorden. Skog, stier og Kleivbekken nedenfor.", "andre_ressurser": ["Politipatrulje og innsatsleder på stedet fra 20:30", "Ringerike Røde Kors Hjelpekorps, 2 lag, ankomst ca. 21:15", "Norske Redningshunder, 1 ekvipasje, ankomst ca. 21:30", "Politihelikopteret er ikke tilgjengelig"], "samband": "SAR-talegruppe SAR KROK 1 (fiktiv) på Nødnett. VHF 123,10 som tillegg.", "oppgave": "Søk med varmesøkende kamera langs lia og stupet mellom Kongens utsikt og Kleivbekken, deretter ledelinjer ned mot Steinsfjorden."}, "kjent_på_spørsmål": {"signalement": "1,68 m, slank, skulderlangt mørkeblondt hår, briller", "bekledning": "Lang mørkegrønn ullkåpe, svart bukse, brune ankelstøvletter, grått skjerf. Ingen lue.", "utstyr": "Håndveske. Bilnøkkel ikke funnet i bilen, antas å ha den på seg.", "mobil": "Mobil avslått siden 18:10. Siste basestasjon dekker Sundvollen og Krokkleiva.", "sist_sett": "Ektemannen så henne hjemme kl. 16:30. Bomstasjonspassering ved Sollihøgda kl. 18:02.", "sms_til_søster": "'Takk for alt. Ikke vær lei deg.' Sendt 17:52.", "helse": "Behandlet for alvorlig depresjon siste halvår. Bruker antidepressiva. Ett tidligere selvmordsforsøk for fire år siden.", "tilgang_på_midler": "Ektemannen savner en eske sovemedisin hjemme. Ingen våpen i husstanden.", "nylige_hendelser": "Mistet moren for tre måneder siden. Sykmeldt.", "betydningsfulle_steder": "Kleivstua og Dronningens utsikt; hun og ektemannen giftet seg på Kleivstua, og moren tok henne ofte med dit.", "turvaner": "Går lite i terreng, kjenner bare stiene rundt Kleivstua.", "fødselsnummer": "14837434468 (syntetisk)", "pårørende": "Ektemann Per Sletten, mobil 400 00 000 (fiktivt nummer)"}, "ukjent": ["Om hun har tatt med seg sovemedisinen", "Om hun har lykt eller lommelykt"], "innspill": [{"t": "+10 min", "tekst": "Røde Kors finner et grått skjerf på stien mellom Kleivstua og Dronningens utsikt, ca. 300 m fra bilen."}, {"t": "+25 min", "tekst": "Teleoperatør melder at mobilen ble slått på i 40 sekunder kl. 20:51. Samme basestasjon."}, {"utløser": "instruktør", "tekst": "Hundeekvipasje melder markering i lia nordvest for Dronningens utsikt, retning Kleivbekken."}, {"utløser": "instruktør", "tekst": "Regnbyge med sikt ned mot 2 km i 15 minutter."}], "fasit": {"funnsted": "N60°03.27' E010°18.96', skogsli ca. 0,9 km nord-nordvest for bilen, 60 m fra stien ned mot Kleivbekken.", "tilstand": "I live, bevisst, nedkjølt, sitter lent mot en gran. Trenger rask evakuering til sykehus.", "funnet_av": "Helikopterets varmesøkende kamera, om besetningen søker lia systematisk. Ellers hundeekvipasjen etter ca. 70 minutter.", "læringspunkter": ["Spurte besetningen om tidligere selvmordsforsøk, avskjedsmelding og tilgang på midler?", "Ble nærområdet rundt IPP prioritert? Veilederen: median 1,1 km i skog, 25 % innen 0,3 km.", "Ble betydningsfulle steder (Kleivstua, Dronningens utsikt) brukt som reflekser?", "Ble skjerf-funnet brukt til å justere søksområdet?", "Ble fare ved stup og mørke vurdert for egne og bakkemannskap?", "Ble medisinsk tilstand og evakuering meldt riktig til HRS etter funn?"]}, "kilder": ["https://folkehjelp.no/files/Redningstjeneste-og-forstehjelp/Veileder-Redningstjeneste-og-personer-i-selvmordsrisiko-web.pdf", "https://www.hovedredningssentralen.no/wp-content/uploads/2026/08/Sok-etter-savnet-pa-land-nett.pdf", "Stedsnavn og posisjoner: Kartverket, ws.geonorge.no/stedsnavn (Kleivstua, Kongens utsikt, Dronningens utsikt, Krokkleiva, Kleivbekken)"]}, {"id": "case02", "tittel": "Savnet gutt, 11 år, Norefjell", "merking": "ØVING", "savnetkategori": "Barn 10-12 år (alder), på fjelltur", "hastegrad": "Høy. Barn, mørke om ca. 2 timer, våte klær og fallende temperatur.", "avstand_fra_rygge": "68 NM, peiling 324° fra ENRY. Minst 77 NM fra svenskegrensen.", "inspirasjon": ["Jente på 9-10 år ble borte fra far og bror på fjelltur nord for Straumsfjorden og ble funnet av Sea King etter ca. ett døgn, kald men i god form (Dagbladet, 2004): https://www.dagbladet.no/nyheter/jublet-da-10-aring-ble-funnet/65972129", "15-åring savnet i Jotunheimen tok seg opp på en topp da han skjønte at noen lette, og ble funnet av redningshelikopter (Dagbladet): https://www.dagbladet.no/nyheter/savnet-15-aring-funnet-i-god-behold/66496681", "Personene og forløpet i dette scenariet er fiktive."], "klokke": {"scenariostart": "D-dag 16:55", "mørkt": "fra ca. 18:45"}, "kjent_ved_varsling": {"oppdrag": "Søk etter savnet gutt, 11 år, Norefjell, mellom Høgevard og Tempelseterfeltet, Sigdal/Krødsherad.", "rekvirent": "Sør-Øst politidistrikt via HRS Sør-Norge", "savnet": {"navn": "Elias Tveiten", "kjønn": "gutt", "alder": 11, "bosted": "Drammen. Familien har hytte i Tempelseterfeltet."}, "ipp": {"type": "Sist sett", "sted": "Stien vest for Høgevard-toppen, ca. 600 m fra varden, på vei ned mot Langås", "posisjon": "N60°17.64' E009°27.42'", "tid": "D-dag 15:40"}, "meldt_savnet": "D-dag 16:35 av far via 112", "vær": "Tåke ned mot ca. 1200 moh (toppen er 1459 moh), lett sludd, vind V 8 m/s, +1 °C på toppen. Under skydekket brukbar sikt.", "terreng": "Snaufjell over ca. 1000 moh, blåbærlyng og stein. Bjørkeskog og granskog lavere ned. Bekkedaler mot nord og vest.", "andre_ressurser": ["Politipatrulje på vei, innsatsleder tidligst 17:30", "Sigdal Røde Kors Hjelpekorps, 1 lag, ankomst ca. 17:45", "Krødsherad Røde Kors, 1 lag og snøscooter, ankomst ca. 18:00", "Hyttenaboer leter langs stien på eget initiativ (uorganiserte frivillige)"], "samband": "SAR-talegruppe SAR NORE 1 (fiktiv) på Nødnett. VHF 123,10 som tillegg.", "oppgave": "Søk fra IPP langs stien mot Langås og Tempelseterfeltet, deretter bekkedalene nord og vest for toppen."}, "kjent_på_spørsmål": {"signalement": "1,45 m, tynn, kort lyst hår", "bekledning": "Blå softshelljakke, svart turbukse, grønn strikkelue, grå joggesko (ikke fjellstøvler), ingen votter. Antatt våt på beina.", "utstyr": "Liten sekk med drikkeflaske og en sjokolade. Ingen hodelykt, ingen ekstra klær.", "mobil": "Har mobil, men den var på 8 % batteri ved toppen. Svarer ikke. Siste kontakt med far: SMS 'jeg løper ned først' 15:42.", "sist_sett": "Far så ham løpe i forveien på stien ned fra varden i tåka 15:40. Far brukte ca. 20 minutter ned, og gutten var ikke på hytta.", "rute": "Gikk fra hytta i Tempelseterfeltet via Langås til Høgevard og skulle samme vei tilbake. Ca. 5 km hver vei.", "helse": "Frisk. Astma, med inhalator i sekken.", "personlighet": "Sporty og selvstendig. Kan bli redd og stille om han tror han har gjort noe galt. Har vært på Norefjell mange ganger, men aldri alene i tåke.", "tidligere_hendelser": "Ingen.", "fødselsnummer": "09821573197 (syntetisk)", "pårørende": "Far Martin Tveiten, mobil 400 00 001 (fiktivt nummer). Mor er på hytta."}, "ukjent": ["Om han har hørt rop fra leteteamene", "Hvor mye batteri mobilen har nå"], "innspill": [{"t": "+15 min", "tekst": "Hyttenabo fant en sjokoladepapir på stien ved Høgvardebekken, nordvest for toppen, ca. 1 km fra IPP. Usikkert om det er guttens."}, {"t": "+30 min", "tekst": "Mor melder at gutten pleier å kjøpe akkurat denne sjokoladen. Teleoperatør gir posisjon fra 16:58 med usikkerhet 1,5 km, sentrert nord for toppen."}, {"utløser": "instruktør", "tekst": "Tåka letter over Høgvardebekken i 20 minutter."}, {"utløser": "instruktør", "tekst": "Mobilen har gått tom for strøm. Ingen flere posisjoner."}], "fasit": {"funnsted": "N60°18.63' E009°25.92', ved Høgvardebekken i tregrensa, ca. 2,3 km nordvest for IPP. Gikk ned feil side av fjellet i tåka og fulgte bekken.", "tilstand": "I live, våt, kald og redd. Sitter under en gran. Svarer ikke på rop fordi han tror han får kjeft, men vinker når helikopteret kommer lavt.", "funnet_av": "Helikopterets varmesøkende kamera langs bekkedalen. Bakkemannskap ville tidligst nådd stedet etter ca. 90 minutter.", "læringspunkter": ["Spurte besetningen om bekledning, fottøy, lykt og mobilbatteri tidlig?", "Ble ledelinjer (bekker, stier) og retningsfeil i tåke vurdert, ikke bare planlagt rute?", "Ble sjokoladepapiret og mobilposisjonen brukt til å flytte søksområdet?", "Ble faren for at barnet ikke svarer på rop tatt med i valget av søksmetode?", "Ble mørke, tåke og sludd vurdert for egen flyging og vinsjing?", "Ble uorganiserte frivillige i området meldt til HRS, og ble de koordinert?"]}, "kilder": ["https://www.hovedredningssentralen.no/wp-content/uploads/2026/08/Sok-etter-savnet-pa-land-nett.pdf", "Stedsnavn og posisjoner: Kartverket, ws.geonorge.no/stedsnavn (Høgevard, Langås, Tempelseterfeltet, Høgvardebekken). Funnsted og IPP er satt mellom navngitte punkter og bør sjekkes mot kart."]}];
+
+const FAGBRIEF = `FAGBRIEF (Nasjonal veileder for redningstjenesten ved søk etter savnet person på land, HRS 2026)
+- IPP, initialt planleggingspunkt: utgangspunktet for søket, basert på konkrete observasjoner, sikre opplysninger, spor eller en samlet vurdering. Typer: sist sett, sist kjente punkt (f.eks. funn av bil).
+- Savnetkategori: klassifiseres i rekkefølgen eksterne krefter, motorisert, mental status, alder, aktivitet.
+- Søksområde: avgrenset av etterretning, terreng og statistikk. POA: sannsynlighet for at den savnede er i et område. POD: sannsynlighet for å oppdage med en gitt ressurs.
+- Ledelinjer: stier, veier, løyper, dalfører, bekker, elver og vannkanter som kanaliserer bevegelse. Reflekser: naturlige mål, steder knyttet til vaner, eller steder med høy risiko.
+- Søksfaser: førsteinnsats, fullskalainnsats, SEAO (søk etter antatt omkommet).
+- Søksmetoder: ledelinjesøk, punktsøk, arealsøk. Redningshelikopter er den dedikerte luftressursen; politihelikopter har også utstyr for å lokalisere personer.
+- Etterretning om savnede: signalement og bekledning, siste observasjon, helse, funksjonsnivå, historikk og turvaner, elektroniske spor, planer, medisiner.
+- Økt selvmordsrisiko: behandles som nødssituasjon. Om lag 2 av 3 blir funnet i live, 15 prosent av de funnede er skadet. Mange holder seg nær sti eller vei og like utenfor syne, eller søker betydningsfulle steder og utsiktspunkter. Konkrete planer, avskjedsmeldinger og tilgang på midler øker bekymringen.
+- Samband: SAR-talegruppe på Nødnett for aksjonen, egen talegruppe for luftressurser, VHF 123,10 MHz som tillegg. Fartøysjef kontakter HRS på Nødnett før operasjon.`;
+
+const $ = id => document.getElementById(id);
+const S = { scen: null, msgs: [], released: [], startMs: 0, running: false, busy: false, queue: [], log: [], lastHrs: '', fired: new Set() };
+let sampleFn = null, voices = [], audioCtx = null;
+
+/* ---------- storage (per-viewer conveniences only) ---------- */
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+};
+
+/* ---------- engine ---------- */
+function apiKey(){ return ($('apiKey').value || '').trim(); }
+function engineReady(){ return !!sampleFn || apiKey().startsWith('sk-'); }
+function renderEngine(){
+  const chip = $('engineChip');
+  if (sampleFn){ chip.className='chip ok'; $('engineTxt').textContent='Claude via claude.ai'; $('keyBox').hidden=true; }
+  else if (apiKey().startsWith('sk-')){ chip.className='chip ok'; $('engineTxt').textContent='Claude via din API-nøkkel'; $('keyBox').hidden=false; }
+  else { chip.className='chip bad'; $('engineTxt').textContent='Mangler API-nøkkel'; $('keyBox').hidden=false; }
+}
+function initEngine(){
+  const k = store.get('hrs.apiKey'); if (k) $('apiKey').value = k;
+  renderEngine();
+  if (window.claude && typeof window.claude.use === 'function'){
+    window.claude.use('sample').then(s => { if (s){ sampleFn = s; } renderEngine(); }).catch(() => renderEngine());
+  }
+  $('apiKey').addEventListener('input', () => { store.set('hrs.apiKey', apiKey()); renderEngine(); });
+}
+
+function mergeTurns(turns){
+  const out = [];
+  for (const t of turns){
+    if (out.length && out[out.length-1].role === t.role) out[out.length-1].content += '\n\n' + t.content;
+    else out.push({ role: t.role, content: t.content });
+  }
+  return out;
+}
+
+async function callClaude(system, turns){
+  if (sampleFn){
+    const input = [{ role:'user', content: system }, ...turns];
+    const r = await sampleFn(input, { cache:false });
+    return (r && r.text || '').trim();
+  }
+  if (!apiKey().startsWith('sk-')) throw new Error('Mangler API-nøkkel. Legg den inn under Innstillinger.');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key': apiKey(),
+      'anthropic-version':'2023-06-01',
+      'anthropic-beta':'server-side-fallback-2026-07-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-opus-5-5',
+      max_tokens: 2048,
+      output_config:{ effort:'low' },
+      fallbacks:'default',
+      system,
+      messages: mergeTurns(turns)
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok){
+    const msg = data && data.error && data.error.message || ('HTTP ' + res.status);
+    if (res.status === 401) throw new Error('API-nøkkelen ble avvist. Sjekk at den er limt inn riktig.');
+    if (res.status === 429) throw new Error('For mange forespørsler eller tom kreditt. Vent litt, eller sjekk kreditt i Anthropic Console.');
+    throw new Error(msg);
+  }
+  if (data.stop_reason === 'refusal') throw new Error('Claude avslo å svare på denne meldingen. Prøv å formulere den annerledes.');
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+
+/* ---------- scenario helpers ---------- */
+function minutesOf(hhmm){ const m = /(\d{1,2}):(\d{2})/.exec(hhmm || ''); return m ? (+m[1])*60 + (+m[2]) : 0; }
+function clockNow(){
+  if (!S.scen) return '--:--';
+  const base = minutesOf(S.scen.klokke && S.scen.klokke.scenariostart);
+  const el = S.running ? Math.floor((Date.now() - S.startMs) / 60000) : 0;
+  const m = (base + el) % 1440;
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+function elapsedMin(){ return S.running ? (Date.now() - S.startMs) / 60000 : 0; }
+function callsign(){ return ($('callsign').value || 'Rescue 330').trim(); }
+function talegruppe(){
+  const s = S.scen && S.scen.kjent_ved_varsling && S.scen.kjent_ved_varsling.samband || '';
+  const m = /SAR[- ]?[A-ZÆØÅ]+[- ]?\d*/.exec(s); return m ? m[0] : '–';
+}
+function publicScenario(){
+  const s = JSON.parse(JSON.stringify(S.scen));
+  delete s.fasit; delete s.innspill; delete s.inspirasjon; delete s.kilder;
+  return s;
+}
+function systemPrompt(){
+  const cs = callsign();
+  const rel = S.released.length
+    ? S.released.map(r => `- kl. ${r.at}: ${r.tekst}`).join('\n')
+    : '- ingen ennå';
+  return `Du er operatør ved Hovedredningssentralen Sør-Norge (HRS) i en treningsøvelse for besetningen på et redningshelikopter fra 330 skvadron. Du snakker med dem over samband. Alt du skriver blir lest opp med talesyntese.
+
+ROLLE OG STIL
+- Du er HRS, ikke en AI-assistent. Hold deg i rollen.
+- Korte, rolige og presise radiomeldinger på norsk bokmål. Normalt 1 til 3 setninger, høyst cirka 45 ord.
+- Start med kallesignal: "${cs}, Hovedredningssentralen." Avslutt med "Kom." når du venter svar, eller "Klart slutt." når en utveksling er ferdig.
+- Høyst to eller tre opplysninger per sending. Ber besetningen om mer, gir du neste del.
+- Ingen markdown, lister, emojier eller spesialtegn som grader- eller minuttegn. Skriv tall slik de uttales på radio: "nord 60 grader 02 komma 81 minutter, øst 010 grader 19 komma 29 minutter". Klokkeslett med fire siffer: "klokken 1430".
+- Be om tilbakelesning av posisjon og talegruppe i første oppdragsmelding, og rett feil tilbakelesning.
+- Er meldingen fra besetningen uklar eller avkuttet, be om gjentakelse.
+
+FAKTA
+- Svar BARE med opplysninger som står i scenariet og i "Opplysninger mottatt underveis". Finn aldri på fakta.
+- Står noe ikke der, eller står det under "ukjent", si at HRS ikke har den opplysningen og vil sjekke med politiet eller pårørende.
+- Gi bare det besetningen spør om, bortsett fra første oppdragsmelding og nye opplysninger instruktøren slipper. Besetningen skal øve på å stille de riktige spørsmålene.
+- Du vet ikke hvor den savnede er. Gjett aldri.
+- Bruk fagbegrepene i fagbriefen riktig. Svar kort på faglige spørsmål som en HRS-operatør naturlig ville svart på, men ikke forelese.
+- Meldinger i hakeparentes som starter med INSTRUKTØR er regi fra øvingsledelsen, ikke radiotrafikk. Følg dem og nevn dem aldri.
+- Melder besetningen funn: kvitter, spør om tilstand og behov (evakuering, sykehus, bakkemannskap), og koordiner videre.
+
+${FAGBRIEF}
+
+ØVINGSTID NÅ: ${clockNow()}
+
+SCENARIO (HRS sin kunnskap):
+${JSON.stringify(publicScenario(), null, 1)}
+
+OPPLYSNINGER MOTTATT UNDERVEIS:
+${rel}`;
+}
+
+/* ---------- log ---------- */
+const WHO = { hrs:'HRS', crew:'BESETNING', instr:'INSTRUKTØR' };
+function addLog(kind, text){
+  S.log.push({ t: clockNow(), kind, text });
+  renderLog();
+}
+function renderLog(){
+  const box = $('log');
+  if (!S.log.length){ box.innerHTML = '<p class="empty">Velg et oppdrag til høyre og trykk Start. HRS kaller dere opp med oppdraget.</p>'; return; }
+  box.textContent = '';
+  for (const e of S.log){
+    const row = document.createElement('div'); row.className = 'entry ' + e.kind;
+    const t = document.createElement('span'); t.className='t'; t.textContent = e.t;
+    const w = document.createElement('span'); w.className='who'; w.textContent = WHO[e.kind];
+    const x = document.createElement('span'); x.className='txt'; x.textContent = e.text;
+    row.append(t, w, x); box.append(row);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+function logText(){ return S.log.map(e => `${e.t}  ${WHO[e.kind]}: ${e.text}`).join('\n'); }
+
+/* ---------- audio: squelch + speech ---------- */
+function ensureAudio(){
+  if (!audioCtx){ try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+}
+function squelch(ms, level){
+  if (!audioCtx) return;
+  const len = Math.floor(audioCtx.sampleRate * ms / 1000);
+  const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1 - i/len);
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const bp = audioCtx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
+  const g = audioCtx.createGain(); g.gain.value = level;
+  src.connect(bp).connect(g).connect(audioCtx.destination); src.start();
+}
+function loadVoices(){
+  if (!('speechSynthesis' in window)) return;
+  voices = speechSynthesis.getVoices().filter(v => /^(nb|no|nn)\b/i.test(v.lang) || /norw|norsk/i.test(v.name));
+  const sel = $('voiceSel'); const saved = store.get('hrs.voice');
+  sel.textContent = '';
+  if (!voices.length){ const o = document.createElement('option'); o.textContent = 'Ingen norsk stemme funnet (bruk Edge)'; o.value=''; sel.append(o); return; }
+  const rank = v => (/natural|online/i.test(v.name) ? 0 : /premium|enhanced|forbedret/i.test(v.name) ? 1 : 2);
+  voices.sort((a,b) => rank(a) - rank(b));
+  for (const v of voices){ const o = document.createElement('option'); o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')'; sel.append(o); }
+  if (saved && voices.some(v => v.name === saved)) sel.value = saved;
+}
+let speechUnlocked = false;
+function unlockSpeech(){
+  ensureAudio();
+  if (speechUnlocked || !('speechSynthesis' in window)) return;
+  try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); speechUnlocked = true; } catch(e){}
+}
+function speakable(t){
+  return t.replace(/[*_#`>]/g,'').replace(/°/g,' grader ').replace(/[′']/g,' minutter ').replace(/\s+/g,' ').trim();
+}
+function speak(text){
+  return new Promise(resolve => {
+    if (!('speechSynthesis' in window)){ resolve(); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(speakable(text));
+    const v = voices.find(x => x.name === $('voiceSel').value) || voices[0];
+    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = 'nb-NO';
+    u.rate = parseFloat($('rate').value) || 1.05;
+    u.onend = u.onerror = () => { squelch(140, 0.05); resolve(); };
+    squelch(110, 0.06);
+    setTimeout(() => speechSynthesis.speak(u), 140);
+  });
+}
+
+/* ---------- state display ---------- */
+function setState(txt, tx){
+  $('stateTxt').textContent = txt;
+  $('stateTxt').className = 'state' + (tx ? ' tx' : '');
+}
+function refreshControls(){
+  const live = S.running;
+  $('ptt').disabled = !live || !SR;
+  $('pttHint').textContent = !live ? 'Start et oppdrag først' : (SR ? 'Hold inne (eller mellomrom) mens du snakker' : 'Talegjenkjenning mangler i denne nettleseren');
+  $('typedIn').disabled = $('typedBtn').disabled = !live;
+  $('freeInj').disabled = $('freeInjBtn').disabled = !live;
+  $('stopBtn').disabled = !live;
+  $('startBtn').disabled = live;
+  $('scenSel').disabled = live;
+  $('debriefBtn').disabled = !S.log.length;
+  $('repeatBtn').disabled = !S.lastHrs;
+}
+
+/* ---------- conversation ---------- */
+async function hrsTurn(userText, kind, shown){
+  S.msgs.push({ role:'user', content: userText });
+  if (kind) addLog(kind, shown || userText);
+  S.busy = true; setState('VENTER PÅ HRS', false);
+  try {
+    const reply = await callClaude(systemPrompt(), S.msgs.slice(-40));
+    if (!reply) throw new Error('Tomt svar fra Claude.');
+    S.msgs.push({ role:'assistant', content: reply });
+    S.lastHrs = reply; addLog('hrs', reply); refreshControls();
+    setState('HRS SENDER', true);
+    await speak(reply);
+  } catch(err){
+    S.msgs.pop();
+    addLog('instr', 'Feil: ' + (err && err.message || err));
+  } finally {
+    S.busy = false; setState(S.running ? 'KLAR' : 'AVSLUTTET', false);
+    const next = S.queue.shift(); if (next) hrsTurn(next.text, next.kind, next.shown);
+  }
+}
+function sendCrew(text){
+  text = (text || '').trim(); if (!text || !S.running) return;
+  if (S.busy){ S.queue.push({ text, kind:'crew' }); addLog('instr', 'Meldingen venter til HRS er ferdig.'); return; }
+  hrsTurn(text, 'crew');
+}
+function releaseInject(i){
+  const inj = S.scen.innspill[i]; if (!inj || S.fired.has(i)) return;
+  S.fired.add(i);
+  S.released.push({ at: clockNow(), tekst: inj.tekst });
+  renderInjects();
+  const note = `[INSTRUKTØR: HRS har nettopp mottatt denne opplysningen: "${inj.tekst}". Kall opp helikopteret og meld den kort nå.]`;
+  const shown = 'Innspill sendt: ' + inj.tekst;
+  if (S.busy) S.queue.push({ text: note, kind:'instr', shown }); else hrsTurn(note, 'instr', shown);
+}
+function freeInject(text){
+  text = (text || '').trim(); if (!text || !S.running) return;
+  S.released.push({ at: clockNow(), tekst: text });
+  const note = `[INSTRUKTØR: HRS har nettopp mottatt denne opplysningen: "${text}". Kall opp helikopteret og meld den kort nå.]`;
+  const shown = 'Innspill sendt: ' + text;
+  if (S.busy) S.queue.push({ text: note, kind:'instr', shown }); else hrsTurn(note, 'instr', shown);
+}
+
+/* ---------- instructor UI ---------- */
+function renderScenario(){
+  const s = S.scen; const v = s.kjent_ved_varsling || {};
+  const card = $('scenCard'); card.textContent = '';
+  const line = (k, val) => { const p = document.createElement('div'); const a = document.createElement('span'); a.className='k'; a.textContent = k + ': '; p.append(a, document.createTextNode(val || '–')); card.append(p); };
+  line('Savnet', v.savnet ? `${v.savnet.navn}, ${v.savnet.alder} år` : '');
+  line('Kategori', s.savnetkategori); line('IPP', v.ipp ? `${v.ipp.sted} (${v.ipp.posisjon})` : '');
+  line('Avstand', s.avstand_fra_rygge); line('Starttid', s.klokke && s.klokke.scenariostart);
+  const f = s.fasit || {}; const box = $('fasit'); box.textContent = '';
+  const add = (k, val) => { const p = document.createElement('div'); const b = document.createElement('b'); b.textContent = k + ': '; p.append(b, document.createTextNode(val || '–')); box.append(p); };
+  add('Funnsted', f.funnsted); add('Tilstand', f.tilstand); add('Funnet av', f.funnet_av);
+  if (f.læringspunkter){ const ul = document.createElement('ul'); for (const l of f.læringspunkter){ const li = document.createElement('li'); li.textContent = l; ul.append(li); } box.append(ul); }
+  $('scTxt').textContent = s.id + ' · ' + (v.savnet ? v.savnet.navn : s.tittel);
+  $('tgTxt').textContent = talegruppe();
+  renderInjects();
+}
+function renderInjects(){
+  const ul = $('injList'); ul.textContent = '';
+  (S.scen.innspill || []).forEach((inj, i) => {
+    const li = document.createElement('li'); if (S.fired.has(i)) li.className = 'sent';
+    const txt = document.createElement('div');
+    const when = document.createElement('div'); when.className = 'when';
+    when.textContent = inj.t ? `Automatisk ${inj.t}` : 'Instruktør utløser';
+    if (S.fired.has(i)) when.textContent += ' · sendt';
+    const body = document.createElement('div'); body.textContent = inj.tekst;
+    txt.append(when, body);
+    const b = document.createElement('button'); b.className='btn'; b.type='button'; b.textContent = 'Send nå';
+    b.disabled = !S.running || S.fired.has(i);
+    b.addEventListener('click', () => releaseInject(i));
+    li.append(txt, b); ul.append(li);
+  });
+}
+function selectScenario(id){
+  S.scen = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
+  store.set('hrs.scen', S.scen.id);
+  renderScenario(); $('clockTxt').textContent = clockNow();
+}
+function startScenario(){
+  unlockSpeech();
+  if (!engineReady()){ $('settings').open = true; $('apiKey').focus(); addLog('instr', 'Legg inn API-nøkkel under Innstillinger før du starter.'); return; }
+  S.msgs = []; S.released = []; S.fired = new Set(); S.queue = []; S.log = []; S.lastHrs = '';
+  $('debrief').hidden = true;
+  S.running = true; S.startMs = Date.now();
+  $('csTxt').textContent = callsign();
+  renderInjects(); refreshControls();
+  hrsTurn(`[INSTRUKTØR: Øvingen starter nå. Kall opp ${callsign()} og gi oppdraget med det viktigste fra "kjent ved varsling": hva som har skjedd, den savnede, IPP med posisjon og tid, vær, talegruppe og oppgave. Del det i to sendinger hvis det blir langt: gi første del nå og be om bekreftelse.]`, 'instr', 'Oppdraget er startet.');
+}
+function stopScenario(){
+  S.running = false; S.queue = [];
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  setState('AVSLUTTET', false); addLog('instr', 'Oppdraget er avsluttet.');
+  renderInjects(); refreshControls();
+}
+async function makeDebrief(){
+  const box = $('debrief'); box.hidden = false; box.textContent = 'Lager debrief …';
+  const f = S.scen.fasit || {};
+  const sys = `Du er instruktør i 330 skvadron og lager en kort debrief på norsk etter en sambandsøving der Claude spilte HRS. Ren tekst, korte avsnitt, høyst 250 ord. Ta med: hva besetningen spurte om, viktige opplysninger de ikke spurte om eller fikk sent, om fagbegreper og samband ble brukt riktig, og 1 til 3 konkrete forbedringspunkter. Vær saklig og konkret.`;
+  const user = `FASIT:\n${JSON.stringify(f, null, 1)}\n\nSCENARIO:\n${JSON.stringify(publicScenario(), null, 1)}\n\nSAMBANDSLOGG:\n${logText()}`;
+  try { box.textContent = await callClaude(sys, [{ role:'user', content: user }]); }
+  catch(err){ box.textContent = 'Kunne ikke lage debrief: ' + (err && err.message || err); }
+}
+
+/* ---------- speech recognition / PTT ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, recText = '', recAcc = '', recOn = false, pttDown = false, micBlocked = false;
+function micStatus(ok, txt){
+  $('micChip').className = 'chip ' + (ok === null ? '' : ok ? 'ok' : 'bad');
+  $('micTxt').textContent = txt;
+}
+function showMicNotice(txt){ const n = $('micNotice'); n.hidden = !txt; n.textContent = txt || ''; }
+function pttStart(){
+  if (!S.running || !SR || pttDown) return;
+  pttDown = true; unlockSpeech();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  $('ptt').classList.add('on'); setState('SENDER', true); squelch(60, 0.04);
+  recText = ''; recAcc = ''; micBlocked = false; $('interimTxt').textContent = '';
+  startRec();
+}
+function startRec(){
+  try {
+    rec = new SR(); rec.lang = 'nb-NO'; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = e => {
+      let fin = '', interim = '';
+      for (let i = 0; i < e.results.length; i++){ const r = e.results[i]; if (r.isFinal) fin += r[0].transcript + ' '; else interim += r[0].transcript; }
+      recText = fin; $('interimTxt').textContent = (recAcc + fin + interim).trim();
+    };
+    rec.onerror = e => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        micBlocked = true;
+        micStatus(false, 'Mikrofon sperret');
+        showMicNotice('Mikrofonen er sperret her. Skriv meldingen i feltet under, eller åpne HRS-boten som egen fil i Microsoft Edge og tillat mikrofon.');
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted'){
+        micStatus(false, 'Talefeil: ' + e.error);
+      }
+    };
+    rec.onend = () => { recOn = false; recAcc += recText; recText = ''; if (pttDown && !micBlocked) startRec(); else if (!pttDown) finishPtt(); };
+    rec.start(); recOn = true;
+  } catch(err){ micStatus(false, 'Talegjenkjenning feilet'); }
+}
+function pttEnd(){
+  if (!pttDown) return;
+  pttDown = false; $('ptt').classList.remove('on');
+  if (rec && recOn){ try { rec.stop(); } catch(e){ finishPtt(); } } else finishPtt();
+}
+function finishPtt(){
+  const text = ((recAcc + recText).trim() || $('interimTxt').textContent || '').trim();
+  $('interimTxt').textContent = '';
+  if (!S.busy) setState(S.running ? 'KLAR' : 'AVSLUTTET', false);
+  if (text){ micStatus(true, 'Mikrofon virker'); showMicNotice(''); sendCrew(text); }
+}
+
+/* ---------- wiring ---------- */
+function init(){
+  const sel = $('scenSel');
+  for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; sel.append(o); }
+  sel.addEventListener('change', () => selectScenario(sel.value));
+  selectScenario(store.get('hrs.scen') || SCENARIOS[0].id); sel.value = S.scen.id;
+
+  const cs = store.get('hrs.callsign'); if (cs) $('callsign').value = cs;
+  $('callsign').addEventListener('input', () => { store.set('hrs.callsign', callsign()); $('csTxt').textContent = callsign(); });
+  $('csTxt').textContent = callsign();
+  const rate = store.get('hrs.rate'); if (rate) $('rate').value = rate;
+  const showRate = () => { $('rateTxt').textContent = String($('rate').value).replace('.', ','); };
+  showRate(); $('rate').addEventListener('input', () => { store.set('hrs.rate', $('rate').value); showRate(); });
+  $('voiceSel').addEventListener('change', () => store.set('hrs.voice', $('voiceSel').value));
+  if ('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+
+  if (!SR){ micStatus(false, 'Ingen talegjenkjenning'); showMicNotice('Denne nettleseren har ikke talegjenkjenning. Bruk Microsoft Edge eller Chrome, eller skriv meldingene i feltet under.'); }
+
+  const ptt = $('ptt');
+  ptt.addEventListener('pointerdown', e => { e.preventDefault(); try { ptt.setPointerCapture(e.pointerId); } catch(_){} pttStart(); });
+  ptt.addEventListener('pointerup', pttEnd);
+  ptt.addEventListener('pointercancel', pttEnd);
+  ptt.addEventListener('contextmenu', e => e.preventDefault());
+  const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+  window.addEventListener('keydown', e => { if (e.code === 'Space' && !e.repeat && !typing(document.activeElement) && S.running){ e.preventDefault(); pttStart(); } });
+  window.addEventListener('keyup', e => { if (e.code === 'Space' && pttDown){ e.preventDefault(); pttEnd(); } });
+
+  $('typedForm').addEventListener('submit', e => { e.preventDefault(); unlockSpeech(); sendCrew($('typedIn').value); $('typedIn').value = ''; });
+  $('freeInjForm').addEventListener('submit', e => { e.preventDefault(); freeInject($('freeInj').value); $('freeInj').value = ''; });
+  $('startBtn').addEventListener('click', startScenario);
+  $('stopBtn').addEventListener('click', stopScenario);
+  $('debriefBtn').addEventListener('click', makeDebrief);
+  $('repeatBtn').addEventListener('click', () => { ensureAudio(); if (S.lastHrs) speak(S.lastHrs); });
+  $('copyBtn').addEventListener('click', () => {
+    const t = logText() || '(tom logg)';
+    try { navigator.clipboard.writeText(t).then(() => { $('copyBtn').textContent = 'Kopiert'; setTimeout(() => $('copyBtn').textContent = 'Kopier logg', 1500); }).catch(() => selectLog()); }
+    catch(e){ selectLog(); }
+  });
+  function selectLog(){ const r = document.createRange(); r.selectNodeContents($('log')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  setInterval(() => {
+    $('clockTxt').textContent = clockNow();
+    if (!S.running) return;
+    const el = elapsedMin();
+    (S.scen.innspill || []).forEach((inj, i) => {
+      const m = inj.t && /\+?\s*(\d+)\s*min/.exec(inj.t);
+      if (m && el >= +m[1] && !S.fired.has(i)) releaseInject(i);
+    });
+  }, 1000);
+
+  initEngine(); refreshControls(); renderLog();
+}
+init();
+</script>
+
+</body>
+</html>

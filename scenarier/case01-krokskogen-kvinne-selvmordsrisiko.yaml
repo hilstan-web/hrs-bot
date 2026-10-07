@@ -1,0 +1,87 @@
+# HRS-bot scenario. ØVING. Alle personer og personopplysninger er FIKTIVE.
+# Fødselsnummer er syntetisk (måned + 80, samme format som Skatteetatens testnumre)
+# og kan ikke tilhøre en virkelig person.
+
+id: case01
+tittel: "Savnet kvinne med økt selvmordsrisiko, Krokskogen"
+merking: ØVING
+savnetkategori: "Person med økt selvmordsrisiko (mental status)"
+hastegrad: "Nødssituasjon. Rask førsteinnsats prioriteres."
+avstand_fra_rygge: "43 NM, peiling 341° fra ENRY. Minst 48 NM fra svenskegrensen."
+inspirasjon:
+  - "Typisk mønster fra veileder 'Redningstjeneste og personer i selvmordsrisiko' (Norsk Folkehjelp): bil funnet ved utsiktspunkt, savnede går kort fra bilen, holder seg nær sti, søker betydningsfulle steder."
+  - "Sakene er satt sammen fritt; ingen virkelig hendelse eller person er gjengitt."
+
+klokke:
+  scenariostart: "D-dag 20:40"
+  mørkt: "fra ca. 18:45"
+
+kjent_ved_varsling:
+  oppdrag: "Søk etter savnet kvinne, Krokskogen, Hole kommune. Fokus på lia under Kongens og Dronningens utsikt."
+  rekvirent: "Sør-Øst politidistrikt via HRS Sør-Norge"
+  savnet:
+    navn: "Kari Anne Sletten"
+    kjønn: kvinne
+    alder: 52
+    bosted: "Sandvika, Bærum"
+  ipp:
+    type: "Funn av bil (sist kjente punkt)"
+    sted: "Parkeringsplassen ved Kleivstua, Krokkleiva"
+    posisjon: "N60°02.81' E010°19.29'"
+    tid_bil_funnet: "D-dag 20:05, av vekter ved Kleivstua"
+  meldt_savnet: "D-dag 19:30 av ektemann, etter at søsteren fikk en bekymringsfull SMS kl. 17:52"
+  vær: "Overskyet, regnbyger, vind S 6 m/s, +5 °C, skydekke ca. 2500 ft, sikt over 10 km utenom byger. Mørkt."
+  terreng: "Bratt li og stup fra Kongens og Dronningens utsikt ned mot Steinsfjorden. Skog, stier og Kleivbekken nedenfor."
+  andre_ressurser:
+    - "Politipatrulje og innsatsleder på stedet fra 20:30"
+    - "Ringerike Røde Kors Hjelpekorps, 2 lag, ankomst ca. 21:15"
+    - "Norske Redningshunder, 1 ekvipasje, ankomst ca. 21:30"
+    - "Politihelikopteret er ikke tilgjengelig"
+  samband: "SAR-talegruppe SAR KROK 1 (fiktiv) på Nødnett. VHF 123,10 som tillegg."
+  oppgave: "Søk med varmesøkende kamera langs lia og stupet mellom Kongens utsikt og Kleivbekken, deretter ledelinjer ned mot Steinsfjorden."
+
+kjent_på_spørsmål:
+  signalement: "1,68 m, slank, skulderlangt mørkeblondt hår, briller"
+  bekledning: "Lang mørkegrønn ullkåpe, svart bukse, brune ankelstøvletter, grått skjerf. Ingen lue."
+  utstyr: "Håndveske. Bilnøkkel ikke funnet i bilen, antas å ha den på seg."
+  mobil: "Mobil avslått siden 18:10. Siste basestasjon dekker Sundvollen og Krokkleiva."
+  sist_sett: "Ektemannen så henne hjemme kl. 16:30. Bomstasjonspassering ved Sollihøgda kl. 18:02."
+  sms_til_søster: "'Takk for alt. Ikke vær lei deg.' Sendt 17:52."
+  helse: "Behandlet for alvorlig depresjon siste halvår. Bruker antidepressiva. Ett tidligere selvmordsforsøk for fire år siden."
+  tilgang_på_midler: "Ektemannen savner en eske sovemedisin hjemme. Ingen våpen i husstanden."
+  nylige_hendelser: "Mistet moren for tre måneder siden. Sykmeldt."
+  betydningsfulle_steder: "Kleivstua og Dronningens utsikt; hun og ektemannen giftet seg på Kleivstua, og moren tok henne ofte med dit."
+  turvaner: "Går lite i terreng, kjenner bare stiene rundt Kleivstua."
+  fødselsnummer: "14837434468 (syntetisk)"
+  pårørende: "Ektemann Per Sletten, mobil 400 00 000 (fiktivt nummer)"
+
+ukjent:
+  - "Om hun har tatt med seg sovemedisinen"
+  - "Om hun har lykt eller lommelykt"
+
+innspill:
+  - t: "+10 min"
+    tekst: "Røde Kors finner et grått skjerf på stien mellom Kleivstua og Dronningens utsikt, ca. 300 m fra bilen."
+  - t: "+25 min"
+    tekst: "Teleoperatør melder at mobilen ble slått på i 40 sekunder kl. 20:51. Samme basestasjon."
+  - utløser: instruktør
+    tekst: "Hundeekvipasje melder markering i lia nordvest for Dronningens utsikt, retning Kleivbekken."
+  - utløser: instruktør
+    tekst: "Regnbyge med sikt ned mot 2 km i 15 minutter."
+
+fasit:   # Bare for instruktør. Boten skal aldri gi dette før funn.
+  funnsted: "N60°03.27' E010°18.96', skogsli ca. 0,9 km nord-nordvest for bilen, 60 m fra stien ned mot Kleivbekken."
+  tilstand: "I live, bevisst, nedkjølt, sitter lent mot en gran. Trenger rask evakuering til sykehus."
+  funnet_av: "Helikopterets varmesøkende kamera, om besetningen søker lia systematisk. Ellers hundeekvipasjen etter ca. 70 minutter."
+  læringspunkter:
+    - "Spurte besetningen om tidligere selvmordsforsøk, avskjedsmelding og tilgang på midler?"
+    - "Ble nærområdet rundt IPP prioritert? Veilederen: median 1,1 km i skog, 25 % innen 0,3 km."
+    - "Ble betydningsfulle steder (Kleivstua, Dronningens utsikt) brukt som reflekser?"
+    - "Ble skjerf-funnet brukt til å justere søksområdet?"
+    - "Ble fare ved stup og mørke vurdert for egne og bakkemannskap?"
+    - "Ble medisinsk tilstand og evakuering meldt riktig til HRS etter funn?"
+
+kilder:
+  - "https://folkehjelp.no/files/Redningstjeneste-og-forstehjelp/Veileder-Redningstjeneste-og-personer-i-selvmordsrisiko-web.pdf"
+  - "https://www.hovedredningssentralen.no/wp-content/uploads/2026/08/Sok-etter-savnet-pa-land-nett.pdf"
+  - "Stedsnavn og posisjoner: Kartverket, ws.geonorge.no/stedsnavn (Kleivstua, Kongens utsikt, Dronningens utsikt, Krokkleiva, Kleivbekken)"
