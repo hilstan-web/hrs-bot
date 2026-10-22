@@ -163,6 +163,12 @@ details[open] summary{margin-bottom:8px}
       <div class="row"><button class="btn" type="button" id="debriefBtn" disabled>Lag debrief</button></div>
       <div class="debrief" id="debrief" hidden></div>
 
+      <details id="learnBox"><summary>Lærdom fra tidligere øvinger (<span id="learnCount">0</span>)</summary>
+        <p class="help">Etter hver øving lagrer HRS opplysninger den ga og råd om egen stil, og bruker dem i neste øving med samme case på denne enheten. Spor og posisjoner som avslører funnstedet lagres aldri.</p>
+        <div class="fasit" id="learnList"></div>
+        <div class="row"><button class="btn" type="button" id="learnCopy">Kopier lærdom</button><button class="btn" type="button" id="learnClear">Nullstill for denne casen</button></div>
+      </details>
+
       <details id="settings"><summary>Innstillinger</summary>
         <div style="display:flex;flex-direction:column;gap:10px">
           <label class="field"><span>Helikopterets kallesignal</span><input id="callsign" type="text" value="Rescue 330"></label>
@@ -334,7 +340,7 @@ FAKTA
 
 ${FAGBRIEF}
 
-ØVINGSTID NÅ: ${clockNow()}
+${learnedPrompt()}ØVINGSTID NÅ: ${clockNow()}
 
 SCENARIO (HRS sin kunnskap):
 ${JSON.stringify(publicScenario(), null, 1)}
@@ -612,7 +618,7 @@ function renderInjects(){
 function selectScenario(id){
   S.scen = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
   store.set('hrs.scen', S.scen.id);
-  renderScenario(); $('clockTxt').textContent = clockNow();
+  renderScenario(); renderLearned(); $('clockTxt').textContent = clockNow();
 }
 function startScenario(){
   unlockSpeech();
@@ -629,6 +635,54 @@ function stopScenario(){
   stopSpeech();
   setState('AVSLUTTET', false); addLog('instr', 'Oppdraget er avsluttet.');
   renderInjects(); refreshControls();
+  learnFromRun();
+}
+
+/* ---------- learning between runs (per device, per case) ---------- */
+function learnKey(){ return 'hrs.learn.' + S.scen.id; }
+function getLearned(){
+  try { const v = JSON.parse(store.get(learnKey()) || 'null'); return { fakta: v && v.fakta || [], stil: v && v.stil || [], øvinger: v && v.øvinger || 0 }; }
+  catch(_){ return { fakta: [], stil: [], øvinger: 0 }; }
+}
+function setLearned(l){ store.set(learnKey(), JSON.stringify(l)); renderLearned(); }
+function learnedPrompt(){
+  const l = getLearned();
+  if (!l.fakta.length && !l.stil.length) return '';
+  return 'LÆRT FRA TIDLIGERE ØVINGER MED DETTE OPPDRAGET (faste opplysninger, bruk dem og motsi dem aldri):\n'
+    + l.fakta.map(f => '- ' + f).join('\n')
+    + (l.stil.length ? '\n\nRÅD OM DIN STIL FRA TIDLIGERE BESETNINGER:\n' + l.stil.map(f => '- ' + f).join('\n') : '')
+    + '\n\n';
+}
+function renderLearned(){
+  if (!S.scen) return;
+  const l = getLearned(); const box = $('learnList');
+  $('learnCount').textContent = l.fakta.length + l.stil.length;
+  box.textContent = '';
+  if (!l.fakta.length && !l.stil.length){ box.textContent = 'Ingenting lært ennå for denne casen.'; return; }
+  const sec = (title, items) => { if (!items.length) return; const h = document.createElement('b'); h.textContent = title; box.append(h); const ul = document.createElement('ul'); for (const i of items){ const li = document.createElement('li'); li.textContent = i; ul.append(li); } box.append(ul); };
+  sec('Faste opplysninger', l.fakta); sec('Stilråd', l.stil);
+  const n = document.createElement('p'); n.className = 'help'; n.textContent = 'Basert på ' + l.øvinger + ' øving(er).'; box.append(n);
+}
+async function learnFromRun(){
+  if (!engineReady() || S.msgs.filter(m => m.role === 'assistant').length < 2) return;
+  const before = getLearned();
+  const sys = `Du vedlikeholder et kort notat med lærdom for en KI som spiller Hovedredningssentralen (HRS) i sambandsøvinger for redningshelikopter. Du får scenariet, det eksisterende notatet og sambandsloggen fra siste øving.
+Svar BARE med JSON: {"fakta":[...],"stil":[...]}
+- "fakta": det fulle, oppdaterte settet med korte faste opplysninger om saken som HRS ga i loggen, men som IKKE står i scenariet (improviserte detaljer om den savnede, pårørende, ressurser, vær osv.). Behold de gamle, legg til nye, slå sammen like. Er noe i strid med scenariet, dropp det.
+- "stil": det fulle, oppdaterte settet med korte råd om hvordan HRS bør snakke, basert på hva besetningen ba om eller reagerte på (for eksempel snakke saktere, kortere svar, gi tall i par). Bare råd som tydelig kommer fra loggen.
+- Ta ALDRI med observasjoner, spor, funn, posisjoner eller retninger som kan avsløre hvor den savnede er.
+- Høyst 30 fakta og 10 stilråd. Én kort setning hver, norsk bokmål.`;
+  const user = `SCENARIO:\n${JSON.stringify(publicScenario(), null, 1)}\n\nEKSISTERENDE NOTAT:\n${JSON.stringify({ fakta: before.fakta, stil: before.stil }, null, 1)}\n\nSAMBANDSLOGG:\n${logText()}`;
+  try {
+    const out = await callClaude(sys, [{ role:'user', content: user }]);
+    const j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+    const clean = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()) : [];
+    const fakta = clean(j.fakta).slice(0, 30), stil = clean(j.stil).slice(0, 10);
+    setLearned({ fakta, stil, øvinger: before.øvinger + 1 });
+    addLog('instr', 'HRS har lagret lærdom fra øvingen (' + fakta.length + ' opplysninger, ' + stil.length + ' stilråd).');
+  } catch(err){
+    addLog('instr', 'Klarte ikke å lagre lærdom: ' + (err && err.message || err));
+  }
 }
 async function makeDebrief(){
   const box = $('debrief'); box.hidden = false; box.textContent = 'Lager debrief …';
@@ -737,6 +791,11 @@ function init(){
   $('startBtn').addEventListener('click', startScenario);
   $('stopBtn').addEventListener('click', stopScenario);
   $('debriefBtn').addEventListener('click', makeDebrief);
+  $('learnClear').addEventListener('click', () => { if (confirm('Slette all lærdom for ' + S.scen.id + ' på denne enheten?')) { store.set(learnKey(), ''); renderLearned(); } });
+  $('learnCopy').addEventListener('click', async () => {
+    const l = getLearned(); const t = S.scen.id + '\nFaste opplysninger:\n' + l.fakta.map(x => '- ' + x).join('\n') + '\nStilråd:\n' + l.stil.map(x => '- ' + x).join('\n');
+    try { await navigator.clipboard.writeText(t); $('learnCopy').textContent = 'Kopiert'; setTimeout(() => $('learnCopy').textContent = 'Kopier lærdom', 1500); } catch(_){ prompt('Kopier teksten:', t); }
+  });
   $('repeatBtn').addEventListener('click', () => { ensureAudio(); if (S.lastHrs) speak(S.lastHrs); });
   $('copyBtn').addEventListener('click', () => {
     const t = logText() || '(tom logg)';
