@@ -117,6 +117,11 @@ details[open] summary{margin-bottom:8px}
 
   <div class="grid">
     <section class="panel" aria-label="Samband">
+      <div class="row" style="margin-bottom:12px;flex-wrap:nowrap">
+        <select id="quickSel" aria-label="Velg oppdrag" style="flex:1;min-width:0"></select>
+        <button class="btn accent" type="button" id="quickStart">Start oppdrag</button>
+        <button class="btn" type="button" id="quickStop" hidden>Avslutt</button>
+      </div>
       <div class="display" aria-live="polite">
         <div class="state" id="stateTxt">KLAR</div>
         <div class="clock" id="clockTxt">--:--</div>
@@ -137,7 +142,7 @@ details[open] summary{margin-bottom:8px}
         <p class="label">Sambandslogg</p>
         <div class="row"><button class="btn" type="button" id="repeatBtn" disabled>Gjenta siste HRS</button><button class="btn" type="button" id="copyBtn">Kopier logg</button></div>
       </div>
-      <div class="log" id="log"><p class="empty">Velg et oppdrag under Instruktør og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p></div>
+      <div class="log" id="log"><p class="empty">Velg et oppdrag øverst og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p></div>
     </section>
 
     <aside class="panel" aria-label="Instruktør">
@@ -354,7 +359,7 @@ function addLog(kind, text){
 }
 function renderLog(){
   const box = $('log');
-  if (!S.log.length){ box.innerHTML = '<p class="empty">Velg et oppdrag under Instruktør og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p>'; return; }
+  if (!S.log.length){ box.innerHTML = '<p class="empty">Velg et oppdrag øverst og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p>'; return; }
   box.textContent = '';
   for (const e of S.log){
     const row = document.createElement('div'); row.className = 'entry ' + e.kind;
@@ -533,6 +538,7 @@ function refreshControls(){
   $('freeInj').disabled = $('freeInjBtn').disabled = !live;
   $('stopBtn').disabled = !live;
   $('startBtn').disabled = live;
+  $('quickStart').hidden = live; $('quickStop').hidden = !live; $('quickSel').disabled = live;
   $('scenSel').disabled = live;
   $('debriefBtn').disabled = !S.log.length;
   $('repeatBtn').disabled = !S.lastHrs;
@@ -659,10 +665,10 @@ async function startScenario(){
   const base = SCENARIOS.find(x => x.id === $('scenSel').value) || S.scen;
   S.scen = base; let note = '';
   if ($('variantChk').checked){
-    $('startBtn').disabled = true; setState('LAGER NY VARIANT …', false);
+    $('startBtn').disabled = $('quickStart').disabled = true; setState('LAGER NY VARIANT …', false);
     try { S.scen = await makeVariant(base); }
     catch(err){ S.scen = base; note = 'Klarte ikke å lage ny variant, bruker grunncasen. (' + (err && err.message || err) + ')'; }
-    $('startBtn').disabled = false;
+    $('startBtn').disabled = $('quickStart').disabled = false;
   }
   renderScenario();
   S.msgs = []; S.released = []; S.fired = new Set(); S.queue = []; S.log = []; S.lastHrs = '';
@@ -768,8 +774,13 @@ function init(){
   importFromHash();
   const sel = $('scenSel');
   for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; sel.append(o); }
-  sel.addEventListener('change', () => selectScenario(sel.value));
-  selectScenario(store.get('hrs.scen') || SCENARIOS[0].id); sel.value = S.scen.id;
+  sel.addEventListener('change', () => { selectScenario(sel.value); $('quickSel').value = sel.value; });
+  const qs = $('quickSel');
+  for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; qs.append(o); }
+  qs.addEventListener('change', () => { sel.value = qs.value; selectScenario(qs.value); });
+  $('quickStart').addEventListener('click', () => startScenario());
+  $('quickStop').addEventListener('click', () => stopScenario());
+  selectScenario(store.get('hrs.scen') || SCENARIOS[0].id); sel.value = S.scen.id; qs.value = S.scen.id;
 
   const cs = store.get('hrs.callsign'); if (cs) $('callsign').value = cs;
   $('callsign').addEventListener('input', () => { store.set('hrs.callsign', callsign()); $('csTxt').textContent = callsign(); });
