@@ -137,7 +137,7 @@ details[open] summary{margin-bottom:8px}
         <p class="label">Sambandslogg</p>
         <div class="row"><button class="btn" type="button" id="repeatBtn" disabled>Gjenta siste HRS</button><button class="btn" type="button" id="copyBtn">Kopier logg</button></div>
       </div>
-      <div class="log" id="log"><p class="empty">Velg et oppdrag til høyre og trykk Start. HRS kaller dere opp med oppdraget.</p></div>
+      <div class="log" id="log"><p class="empty">Velg et oppdrag under Instruktør og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p></div>
     </section>
 
     <aside class="panel" aria-label="Instruktør">
@@ -170,7 +170,7 @@ details[open] summary{margin-bottom:8px}
           <label class="field"><span>Talehastighet: <b id="rateTxt">1,05</b></span><input id="rate" type="range" min="0.8" max="1.3" step="0.05" value="1.05"></label>
           <div id="keyBox" hidden>
             <label class="field"><span>Claude API-nøkkel (lagres bare i denne nettleseren)</span><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
-            <p class="help">Lag nøkkelen på <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Del aldri fila med nøkkelen lagret i nettleseren.</p>
+            <p class="help">Lag nøkkelen på <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>. Del aldri fila med nøkkelen lagret i nettleseren.</p>
           </div>
           <p class="help">PC: bruk Microsoft Edge, som har naturlige norske stemmer (Finn, Pernille, Iselin). iPhone og iPad: bruk Safari, og last ned den forbedrede norske stemmen under Innstillinger, Tilgjengelighet, Opplest innhold, Stemmer, Norsk. Bruk headset eller AirPods for best lyd.</p>
         </div>
@@ -330,7 +330,7 @@ function addLog(kind, text){
 }
 function renderLog(){
   const box = $('log');
-  if (!S.log.length){ box.innerHTML = '<p class="empty">Velg et oppdrag til høyre og trykk Start. HRS kaller dere opp med oppdraget.</p>'; return; }
+  if (!S.log.length){ box.innerHTML = '<p class="empty">Velg et oppdrag under Instruktør og trykk Start oppdrag. HRS kaller dere opp med oppdraget.</p>'; return; }
   box.textContent = '';
   for (const e of S.log){
     const row = document.createElement('div'); row.className = 'entry ' + e.kind;
@@ -364,7 +364,7 @@ function loadVoices(){
   voices = speechSynthesis.getVoices().filter(v => /^(nb|no|nn)\b/i.test(v.lang) || /norw|norsk/i.test(v.name));
   const sel = $('voiceSel'); const saved = store.get('hrs.voice');
   sel.textContent = '';
-  if (!voices.length){ const o = document.createElement('option'); o.textContent = 'Ingen norsk stemme funnet (bruk Edge)'; o.value=''; sel.append(o); return; }
+  if (!voices.length){ const o = document.createElement('option'); o.textContent = 'Ingen norsk stemme funnet. Se teksten under.'; o.value=''; sel.append(o); return; }
   const rank = v => (/natural|online/i.test(v.name) ? 0 : /premium|enhanced|forbedret/i.test(v.name) ? 1 : 2);
   voices.sort((a,b) => rank(a) - rank(b));
   for (const v of voices){ const o = document.createElement('option'); o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')'; sel.append(o); }

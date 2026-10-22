@@ -1,5 +1,9 @@
 # HRS Sambandsøving: oppsett
 
+**Detaljert steg-for-steg-guide for iPhone/iPad, med lenker og skjermbilder:** https://claude.ai/artifact/8kGKSJVCso62jXFF7t6Gtg
+
+Siden: https://hilstan-web.github.io/hrs-bot/
+
 ## 1. Test nå, uten noe oppsett
 Åpne artifact-lenken i claude.ai: https://claude.ai/artifact/RaGrih7rSKD2QopEne8KB3
 - Claude svarer via claude.ai-kontoen din. Ingen nøkkel trengs.
@@ -10,9 +14,9 @@
 1. Last ned `hrs-sambandsoving.html` fra prosjektet.
 2. Åpne den i **Microsoft Edge** (høyreklikk, Åpne med, Edge). Edge har norsk talegjenkjenning og naturlige norske stemmer gratis.
 3. Lag en Claude API-nøkkel:
-   1. Gå til https://console.anthropic.com og lag konto (e-post).
-   2. Under **Billing** legger du inn kort og kjøper kreditt, f.eks. 5 USD.
-   3. Under **API keys** trykker du **Create key**, gir den navnet «HRS-bot» og kopierer nøkkelen (starter med `sk-ant-`).
+   1. Gå til https://platform.claude.com og lag konto (e-post).
+   2. På https://platform.claude.com/settings/billing legger du inn kort og kjøper kreditt, f.eks. 5 USD.
+   3. På https://platform.claude.com/settings/keys trykker du **Create key**, gir den navnet «HRS-bot» og kopierer nøkkelen (starter med `sk-ant-`).
 4. I HRS-siden: åpne **Innstillinger**, lim inn nøkkelen. Den lagres bare i din nettleser.
 5. Velg stemme (anbefalt: Finn eller Pernille «Online (Natural)»), velg case og trykk **Start oppdrag**.
 6. Hold **SNAKK** (eller mellomrom, eller en fotpedal som sender mellomrom) mens du snakker. Edge spør om mikrofon første gang: tillat.
