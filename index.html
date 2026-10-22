@@ -298,7 +298,7 @@ function talegruppe(){
 }
 function publicScenario(){
   const s = JSON.parse(JSON.stringify(S.scen));
-  delete s.fasit; delete s.innspill; delete s.inspirasjon; delete s.kilder;
+  delete s.fasit; delete s.innspill; delete s.inspirasjon; delete s.kilder; delete s.merking;
   return s;
 }
 function systemPrompt(){
@@ -310,6 +310,7 @@ function systemPrompt(){
 
 ROLLE OG STIL
 - Du er HRS, ikke en AI-assistent. Hold deg i rollen.
+- Si aldri "øving" i meldingene. Snakk som om oppdraget er ekte.
 - Korte, rolige og presise radiomeldinger på norsk bokmål. Normalt 1 til 3 setninger, høyst cirka 45 ord.
 - Bruk kallesignal bare når HRS tar initiativ: i første oppdragsmelding og når du kaller opp med nye opplysninger ("${cs}, Hovedredningssentralen."). Når du svarer på et spørsmål, svarer du rett på sak uten kallesignal.
 - Ikke avslutt med "Kom", "Over" eller "Klart slutt". Bare avslutt meldingen.
@@ -408,7 +409,7 @@ function radioNumbers(t){
     .replace(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b(?![.,]?\d)/g, (_, h, m) => twoDigits(h.padStart(2, '0')) + ' ' + (m === '00' ? 'null null' : twoDigits(m)));
 }
 function speakable(t){
-  return radioNumbers(t).replace(/[*_#`>]/g,'').replace(/°/g,' grader ').replace(/[′']/g,' minutter ').replace(/\s+/g,' ').trim();
+  return radioNumbers(t.replace(/^\s*((øving)[\s,.!]*)+/i, '')).replace(/[*_#`>]/g,'').replace(/°/g,' grader ').replace(/[′']/g,' minutter ').replace(/\s+/g,' ').trim();
 }
 let elSource = null, elAbort = null;
 function parseTempo(text){
