@@ -219,6 +219,12 @@ function initEngine(){
     window.claude.use('sample').then(s => { if (s){ sampleFn = s; } renderEngine(); }).catch(() => renderEngine());
   }
   $('apiKey').addEventListener('input', () => { store.set('hrs.apiKey', apiKey()); renderEngine(); });
+  const chip = $('engineChip'); chip.style.cursor = 'pointer'; chip.title = 'Åpne innstillinger';
+  chip.addEventListener('click', () => {
+    $('settings').open = true;
+    $('settings').scrollIntoView({ behavior:'smooth', block:'start' });
+    if (!sampleFn) setTimeout(() => $('apiKey').focus(), 400);
+  });
 }
 
 function mergeTurns(turns){
