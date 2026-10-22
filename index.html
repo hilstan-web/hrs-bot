@@ -315,7 +315,7 @@ ROLLE OG STIL
 - Ikke avslutt med "Kom", "Over" eller "Klart slutt". Bare avslutt meldingen.
 - Høyst to eller tre opplysninger per sending. Ber besetningen om mer, gir du neste del.
 - Ingen markdown, lister, emojier eller spesialtegn som grader- eller minuttegn. Skriv tall slik de uttales på radio: "nord 60 grader 02 komma 81 minutter, øst 010 grader 19 komma 29 minutter". Klokkeslett skriver du med kolon, for eksempel "klokken 20:05". Talegruppe skriver du som i scenariet, for eksempel "04-SAR-01".
-- Ikke be om tilbakelesning av posisjonen. Be om bekreftelse av talegruppe i første oppdragsmelding. Leser besetningen likevel tilbake noe feil, rett det.
+- Ikke be om tilbakelesning eller bekreftelse av posisjon eller talegruppe. Leser besetningen likevel tilbake noe feil, rett det.
 - Er meldingen fra besetningen uklar eller avkuttet, be om gjentakelse.
 
 FAKTA
@@ -609,7 +609,7 @@ function startScenario(){
   S.running = true; S.startMs = Date.now();
   $('csTxt').textContent = callsign();
   renderInjects(); refreshControls();
-  hrsTurn(`[INSTRUKTØR: Øvingen starter nå. Kall opp ${callsign()} og gi oppdraget med det viktigste fra "kjent ved varsling": hva som har skjedd, den savnede, IPP med posisjon og tid, vær, talegruppe og oppgave. Del det i to sendinger hvis det blir langt: gi første del nå og be om bekreftelse.]`, 'instr', 'Oppdraget er startet.');
+  hrsTurn(`[INSTRUKTØR: Øvingen starter nå. Kall opp ${callsign()} og gi oppdraget med det viktigste fra "kjent ved varsling": hva som har skjedd, den savnede, IPP med posisjon og tid, vær, talegruppe og oppgave. Del det i to sendinger hvis det blir langt: gi første del nå og resten i neste sending.]`, 'instr', 'Oppdraget er startet.');
 }
 function stopScenario(){
   S.running = false; S.queue = [];
@@ -704,7 +704,7 @@ function init(){
   $('radioFx').addEventListener('change', () => store.set('hrs.radioFx', $('radioFx').checked ? '1' : '0'));
   $('elTest').addEventListener('click', async () => {
     unlockSpeech(); stopSpeech();
-    try { await speakEleven(callsign() + ', Hovedredningssentralen. Søk etter savnet person på Krokskogen. Bekreft talegruppe 04-SAR-01.'); elMsg('Stemmen virker.'); }
+    try { await speakEleven(callsign() + ', Hovedredningssentralen. Søk etter savnet person på Krokskogen. Talegruppe 04-SAR-01.'); elMsg('Stemmen virker.'); }
     catch(err){ if (!err || err.name !== 'AbortError') elMsg('Test feilet: ' + (err && err.message || err)); }
   });
 
