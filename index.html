@@ -424,8 +424,14 @@ function numberWords(n){
   const t = Math.floor(n / 1000), r = n % 1000;
   return (t === 1 ? 'ett tusen' : numWord(t) + ' tusen') + (r ? (r < 100 ? ' og ' : ' ') + numberWords(r) : '');
 }
+function spellCallsign(t){
+  const cs = callsign(); const m = /^(.*?)(\d{3})$/.exec(cs);
+  if (!m || !t.includes(cs)) return t;
+  const n = m[2]; const said = m[1] + NUM[+n[0]] + ' ' + (n.slice(1) === '00' ? 'hundre' : twoDigits(n.slice(1)));
+  return t.split(cs).join(said);
+}
 function spellNumbers(t){
-  return t
+  return spellCallsign(t)
     .replace(/\bm\/s\b/g, 'meter per sekund').replace(/\bmoh\b/g, 'meter over havet').replace(/\bca\./g, 'cirka').replace(/\bkl\./g, 'klokken')
     .replace(/(\d)\s?(km|m)\b/g, (_, d, u) => d + (u === 'km' ? ' kilometer' : ' meter'))
     .replace(/\b\d{2,3}(?: \d{2,3}){1,3}\b/g, g => g.split(' ').map(digits).join(', '))
