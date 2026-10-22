@@ -317,6 +317,7 @@ ROLLE OG STIL
 - Ingen markdown, lister, emojier eller spesialtegn som grader- eller minuttegn. Skriv tall slik de uttales på radio: "nord 60 grader 02 komma 81 minutter, øst 010 grader 19 komma 29 minutter". Klokkeslett skriver du med kolon, for eksempel "klokken 20:05". Talegruppe skriver du som i scenariet, for eksempel "04-SAR-01".
 - Ikke be om tilbakelesning eller bekreftelse av posisjon eller talegruppe. Leser besetningen likevel tilbake noe feil, rett det.
 - Er meldingen fra besetningen uklar eller avkuttet, be om gjentakelse.
+- TALEFART: Ber besetningen deg snakke saktere, start meldingen med [TEMPO 0.8]. Ber de om enda saktere, bruk [TEMPO 0.65]. Fortsett med samme merke i alle senere meldinger til de sier at farten er grei eller ber om normal fart. Merket leses ikke opp. Når du staver tall sakte, skriv sifrene i grupper med komma mellom, for eksempel "en fire, åtte tre, sju fire" og så resten.
 
 FAKTA
 - Bruk opplysningene i scenariet og i "Opplysninger mottatt underveis" først, og aldri i strid med dem.
@@ -410,6 +411,13 @@ function speakable(t){
   return radioNumbers(t).replace(/[*_#`>]/g,'').replace(/°/g,' grader ').replace(/[′']/g,' minutter ').replace(/\s+/g,' ').trim();
 }
 let elSource = null, elAbort = null;
+function parseTempo(text){
+  const m = /^\s*\[TEMPO\s*([0-9]+(?:[.,][0-9]+)?)\]\s*/i.exec(text || '');
+  if (!m) return { text: text || '', tempo: 1 };
+  const t = Math.min(1.2, Math.max(0.5, parseFloat(m[1].replace(',', '.')) || 1));
+  return { text: text.slice(m[0].length), tempo: t };
+}
+function baseRate(){ return parseFloat($('rate').value) || 1.05; }
 function ttsMode(){ return $('ttsSel').value; }
 function elKey(){ return ($('elKey').value || '').trim(); }
 function elMsg(html){ $('elMsg').innerHTML = html; }
@@ -450,8 +458,11 @@ async function speakEleven(text){
   if (!audioCtx) throw new Error('Lyd er ikke tilgjengelig i nettleseren.');
   const voice = $('elVoice').value; if (!voice) throw new Error('Velg en ElevenLabs-stemme under Innstillinger.');
   const model = $('elModel').value;
-  const rate = Math.min(1.2, Math.max(0.7, parseFloat($('rate').value) || 1));
-  const body = { text: speakable(text), model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: rate } };
+  const p = parseTempo(text);
+  const rate = Math.min(1.2, Math.max(0.7, baseRate() * p.tempo));
+  let said = speakable(p.text);
+  if (baseRate() * p.tempo < 0.75) said = said.replace(/([,.:])\s+/g, '$1 ... ');
+  const body = { text: said, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: rate } };
   body.language_code = 'no';
   elAbort = new AbortController();
   const post = b => fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voice) + '?output_format=mp3_44100_128', {
@@ -494,10 +505,11 @@ function speakBrowser(text){
   return new Promise(resolve => {
     if (!('speechSynthesis' in window)){ resolve(); return; }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(speakable(text));
+    const p = parseTempo(text);
+    const u = new SpeechSynthesisUtterance(speakable(p.text));
     const v = voices.find(x => x.name === $('voiceSel').value) || voices[0];
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = 'nb-NO';
-    u.rate = parseFloat($('rate').value) || 1.05;
+    u.rate = Math.max(0.5, baseRate() * p.tempo);
     u.onend = u.onerror = () => { squelch(140, 0.05); resolve(); };
     squelch(110, 0.06);
     setTimeout(() => speechSynthesis.speak(u), 140);
@@ -531,7 +543,7 @@ async function hrsTurn(userText, kind, shown){
     const reply = await callClaude(systemPrompt(), S.msgs.slice(-40));
     if (!reply) throw new Error('Tomt svar fra Claude.');
     S.msgs.push({ role:'assistant', content: reply });
-    S.lastHrs = reply; addLog('hrs', reply); refreshControls();
+    S.lastHrs = reply; addLog('hrs', parseTempo(reply).text); refreshControls();
     setState('HRS SENDER', true);
     await speak(reply);
   } catch(err){
