@@ -235,7 +235,8 @@ function initEngine(){
   if (window.claude && typeof window.claude.use === 'function'){
     window.claude.use('sample').then(s => { if (s){ sampleFn = s; } renderEngine(); }).catch(() => renderEngine());
   }
-  $('apiKey').addEventListener('input', () => { store.set('hrs.apiKey', apiKey()); renderEngine(); });
+  let keyT = null;
+  $('apiKey').addEventListener('input', () => { store.set('hrs.apiKey', apiKey()); renderEngine(); clearTimeout(keyT); keyT = setTimeout(prepareVariant, 1500); });
   const chip = $('engineChip'); chip.style.cursor = 'pointer'; chip.title = 'Åpne innstillinger';
   chip.addEventListener('click', () => {
     $('settings').open = true;
@@ -659,15 +660,29 @@ Alt skal være fiktivt. Skriv fødselsnummer som "SETTES AUTOMATISK".`;
   v.variant = true;
   return v;
 }
+// The next variant is prepared in the background so Start does not have to wait for it.
+let prepared = null;  // { id, promise }
+function prepareVariant(){
+  const id = $('scenSel').value;
+  if (!$('variantChk').checked || !engineReady()) return;
+  if (prepared && prepared.id === id) return;
+  const base = SCENARIOS.find(x => x.id === id); if (!base) return;
+  const p = { id, promise: makeVariant(base).catch(err => ({ error: err })) };
+  prepared = p;
+  p.promise.then(v => { if (prepared === p && v && v.error) prepared = null; });
+}
 async function startScenario(){
   unlockSpeech();
   if (!engineReady()){ $('settings').open = true; $('apiKey').focus(); addLog('instr', 'Legg inn API-nøkkel under Innstillinger før du starter.'); return; }
   const base = SCENARIOS.find(x => x.id === $('scenSel').value) || S.scen;
   S.scen = base; let note = '';
   if ($('variantChk').checked){
-    $('startBtn').disabled = $('quickStart').disabled = true; setState('LAGER NY VARIANT …', false);
-    try { S.scen = await makeVariant(base); }
-    catch(err){ S.scen = base; note = 'Klarte ikke å lage ny variant, bruker grunncasen. (' + (err && err.message || err) + ')'; }
+    $('startBtn').disabled = $('quickStart').disabled = true; setState('GJØR KLAR OPPDRAG …', false);
+    const p = (prepared && prepared.id === base.id) ? prepared : { id: base.id, promise: makeVariant(base).catch(err => ({ error: err })) };
+    prepared = null;
+    const v = await p.promise;
+    if (v && !v.error) S.scen = v;
+    else note = 'Klarte ikke å lage ny variant, bruker grunncasen. (' + (v && v.error && v.error.message || v && v.error || 'ukjent feil') + ')';
     $('startBtn').disabled = $('quickStart').disabled = false;
   }
   renderScenario();
@@ -677,6 +692,7 @@ async function startScenario(){
   S.running = true; S.startMs = Date.now();
   $('csTxt').textContent = callsign();
   renderInjects(); refreshControls();
+  setTimeout(prepareVariant, 3000);
   hrsTurn(`[INSTRUKTØR: Øvingen starter nå. Kall opp ${callsign()} og gi oppdraget med det viktigste fra "kjent ved varsling": hva som har skjedd, den savnede, IPP med posisjon og tid, vær, talegruppe og oppgave. Del det i to sendinger hvis det blir langt: gi første del nå og resten i neste sending.]`, 'instr', 'Oppdraget er startet.');
 }
 function stopScenario(){
@@ -774,10 +790,10 @@ function init(){
   importFromHash();
   const sel = $('scenSel');
   for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; sel.append(o); }
-  sel.addEventListener('change', () => { selectScenario(sel.value); $('quickSel').value = sel.value; });
+  sel.addEventListener('change', () => { selectScenario(sel.value); $('quickSel').value = sel.value; prepareVariant(); });
   const qs = $('quickSel');
   for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; qs.append(o); }
-  qs.addEventListener('change', () => { sel.value = qs.value; selectScenario(qs.value); });
+  qs.addEventListener('change', () => { sel.value = qs.value; selectScenario(qs.value); prepareVariant(); });
   $('quickStart').addEventListener('click', () => startScenario());
   $('quickStop').addEventListener('click', () => stopScenario());
   selectScenario(store.get('hrs.scen') || SCENARIOS[0].id); sel.value = S.scen.id; qs.value = S.scen.id;
@@ -843,6 +859,8 @@ function init(){
   }, 1000);
 
   initEngine(); refreshControls(); renderLog();
+  $('variantChk').addEventListener('change', prepareVariant);
+  setTimeout(prepareVariant, 500);
   $('shareBtn').addEventListener('click', shareLink);
   if (importedFromLink) addLog('instr', 'Nøklene fra lenken er lagt inn. Velg oppdrag og trykk Start oppdrag.');
 }
