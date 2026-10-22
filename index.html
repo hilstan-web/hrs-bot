@@ -196,7 +196,7 @@ details[open] summary{margin-bottom:8px}
             <label class="field"><span>Claude API-nøkkel (lagres bare i denne nettleseren)</span><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-… eller lim inn delingslenken"></label>
             <p class="help">Lag nøkkelen på <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>. Del aldri fila med nøkkelen lagret i nettleseren.</p>
           </div>
-          <div class="row"><button class="btn" type="button" id="shareBtn">Lag delingslenke med nøklene</button></div>
+          <div class="row"><button class="btn" type="button" id="shareBtn">Lag delingslenke med nøklene</button><button class="btn" type="button" id="showKeys">Vis nøklene</button></div>
           <p class="help" id="shareMsg">Lenken inneholder nøklene dine. Alle som får den, kan bruke kreditten din. Sett en lav grense i Console og bytt nøkkel etter demoen.</p>
           <p class="help">PC: bruk Microsoft Edge, som har naturlige norske stemmer (Finn, Pernille, Iselin). iPhone og iPad: bruk Safari, og last ned den forbedrede norske stemmen under Innstillinger, Tilgjengelighet, Opplest innhold, Stemmer, Norsk. Bruk headset eller AirPods for best lyd.</p>
         </div>
@@ -914,6 +914,11 @@ function init(){
   $('variantChk').addEventListener('change', prepareVariant);
   setTimeout(prepareVariant, 500);
   $('shareBtn').addEventListener('click', shareLink);
+  $('showKeys').addEventListener('click', () => {
+    const show = $('apiKey').type === 'password';
+    $('apiKey').type = $('elKey').type = show ? 'text' : 'password';
+    $('showKeys').textContent = show ? 'Skjul nøklene' : 'Vis nøklene';
+  });
   if (importedFromLink) addLog('instr', 'Nøklene fra lenken er lagt inn. Velg oppdrag og trykk Start oppdrag.');
 }
 init();
