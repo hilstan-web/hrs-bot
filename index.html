@@ -170,7 +170,7 @@ details[open] summary{margin-bottom:8px}
           <div id="elBox" hidden style="display:flex;flex-direction:column;gap:10px">
             <label class="field"><span>ElevenLabs API-nøkkel (lagres bare i denne nettleseren)</span><input id="elKey" type="password" autocomplete="off" placeholder="sk_…"></label>
             <label class="field"><span>ElevenLabs-stemme</span><select id="elVoice"><option value="">Lim inn nøkkelen først</option></select></label>
-            <label class="field"><span>Modell</span><select id="elModel"><option value="eleven_multilingual_v2">Multilingual v2 (best kvalitet)</option><option value="eleven_flash_v2_5">Flash v2.5 (raskest svar, billigst)</option></select></label>
+            <label class="field"><span>Modell</span><select id="elModel"><option value="eleven_flash_v2_5">Flash v2.5 (norsk, raskest, anbefalt)</option><option value="eleven_v3">Eleven v3 (norsk, mest naturlig, tregere)</option></select></label>
             <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)"><input id="radioFx" type="checkbox" checked style="width:20px;height:20px;flex:none;margin:0"><span>Radiolyd (smalere lyd, som over samband)</span></label>
             <div class="row"><button class="btn" type="button" id="elTest">Test stemmen</button></div>
             <p class="help" id="elMsg">Lag nøkkelen på <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">elevenlabs.io, API keys</a>. Egen klonet stemme lager du under <a href="https://elevenlabs.io/app/voice-lab" target="_blank" rel="noopener">Voices</a>, og den dukker opp i lista over.</p>
@@ -441,13 +441,15 @@ async function speakEleven(text){
   const model = $('elModel').value;
   const rate = Math.min(1.2, Math.max(0.7, parseFloat($('rate').value) || 1));
   const body = { text: speakable(text), model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: rate } };
-  if (model.includes('v2_5')) body.language_code = 'no';
+  body.language_code = 'no';
   elAbort = new AbortController();
-  const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voice) + '?output_format=mp3_44100_128', {
+  const post = b => fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voice) + '?output_format=mp3_44100_128', {
     method: 'POST', signal: elAbort.signal,
     headers: { 'xi-api-key': elKey(), 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(b)
   });
+  let r = await post(body);
+  if (r.status === 400 && model !== 'eleven_flash_v2_5'){ delete body.language_code; r = await post(body); }
   if (!r.ok){
     let detail = ''; try { const j = await r.json(); detail = (j.detail && (j.detail.message || j.detail.status)) || ''; } catch(_){}
     throw new Error('ElevenLabs feil ' + r.status + (detail ? ': ' + detail : ''));
@@ -679,7 +681,7 @@ function init(){
   if ('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
   $('ttsSel').value = store.get('hrs.tts') === 'eleven' ? 'eleven' : 'browser';
   $('elKey').value = store.get('hrs.elKey') || '';
-  if (store.get('hrs.elModel')) $('elModel').value = store.get('hrs.elModel');
+  const elm = store.get('hrs.elModel'); if (elm && [...$('elModel').options].some(o => o.value === elm)) $('elModel').value = elm;
   $('radioFx').checked = store.get('hrs.radioFx') !== '0';
   renderTts();
   if (ttsMode() === 'eleven' && elKey()) loadElVoices();
