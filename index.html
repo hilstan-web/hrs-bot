@@ -263,7 +263,7 @@ function mergeTurns(turns){
   return out;
 }
 
-async function callClaude(system, turns, maxTokens){
+async function callClaude(system, turns, maxTokens, model){
   if (sampleFn){
     const input = [{ role:'user', content: system }, ...turns];
     const r = await sampleFn(input, { cache:false });
@@ -280,7 +280,7 @@ async function callClaude(system, turns, maxTokens){
       'anthropic-dangerous-direct-browser-access':'true'
     },
     body: JSON.stringify({
-      model:'claude-opus-5-5',
+      model: model || 'claude-opus-5-5',
       max_tokens: maxTokens || 2048,
       output_config:{ effort:'low' },
       fallbacks:'default',
@@ -682,7 +682,7 @@ Behold: samme type sak og savnetkategori, samme område og samme IPP (sted og po
 Lag nytt og troverdig: navn (fiktivt, norsk), alder innenfor samme kategori, bosted, hvem som meldte savnet og når, klokkeslett (scenariostart og tider i saken), vær, signalement, bekledning, utstyr, mobil, helse, sist sett, pårørende (fiktive telefonnumre som 400 00 0xx), andre ressurser, ukjent-punkter og innspill (to med "t": "+N min" og to med "utløser": "instruktør").
 Fasit: velg et nytt, troverdig funnsted i samme område, 0,3 til 3 km fra IPP, med beskrivelse av terreng og omtrentlig posisjon (merk "omtrentlig"), ny tilstand (oftest i live), hvem som finner personen, og læringspunkter tilpasset varianten. Innspillene skal gi spor som kan lede mot det nye funnstedet uten å avsløre det.
 Alt skal være fiktivt. Skriv fødselsnummer som "SETTES AUTOMATISK".`;
-  const out = await callClaude(sys, [{ role:'user', content: 'GRUNNSCENARIO:\n' + JSON.stringify(base, null, 1) }], 6000);
+  const out = await callClaude(sys, [{ role:'user', content: 'GRUNNSCENARIO:\n' + JSON.stringify(base) }], 5000, 'claude-haiku-5-5');
   const v = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
   const kv = v.kjent_ved_varsling, bk = base.kjent_ved_varsling;
   if (!kv || !kv.savnet || !kv.savnet.navn || !v.fasit || !Array.isArray(v.innspill) || !v.kjent_på_spørsmål) throw new Error('Ufullstendig variant');
@@ -713,13 +713,14 @@ async function startScenario(){
   const base = SCENARIOS.find(x => x.id === $('scenSel').value) || S.scen;
   S.scen = base; let note = '';
   if ($('variantChk').checked){
-    $('startBtn').disabled = $('quickStart').disabled = true; setState('GJØR KLAR OPPDRAG …', false);
+    $('startBtn').disabled = $('quickStart').disabled = true; $('quickStart').textContent = 'Gjør klar …'; setState('GJØR KLAR OPPDRAG …', false);
     const p = (prepared && prepared.id === base.id) ? prepared : { id: base.id, promise: makeVariant(base).catch(err => ({ error: err })) };
-    prepared = null;
-    const v = await p.promise;
-    if (v && !v.error) S.scen = v;
-    else note = 'Klarte ikke å lage ny variant, bruker grunncasen. (' + (v && v.error && v.error.message || v && v.error || 'ukjent feil') + ')';
-    $('startBtn').disabled = $('quickStart').disabled = false;
+    const v = await Promise.race([p.promise, new Promise(r => setTimeout(() => r({ timeout: true }), 8000))]);
+    if (v && v.timeout){ prepared = p; note = 'Ny variant var ikke klar ennå, bruker grunncasen denne gangen. Neste start får ny variant.'; }
+    else { prepared = null;
+      if (v && !v.error) S.scen = v;
+      else note = 'Klarte ikke å lage ny variant, bruker grunncasen. (' + (v && v.error && v.error.message || v && v.error || 'ukjent feil') + ')'; }
+    $('startBtn').disabled = $('quickStart').disabled = false; $('quickStart').textContent = 'Start oppdrag';
   }
   renderScenario();
   S.msgs = []; S.released = []; S.fired = new Set(); S.queue = []; S.log = []; S.lastHrs = '';
@@ -729,6 +730,7 @@ async function startScenario(){
   $('csTxt').textContent = callsign();
   renderInjects(); refreshControls();
   setTimeout(prepareVariant, 3000);
+  S.startedAt = Date.now();
   hrsTurn(`[INSTRUKTØR: Øvingen starter nå. Kall opp ${callsign()} og gi oppdraget med det viktigste fra "kjent ved varsling": hva som har skjedd, den savnede, IPP med posisjon og tid, vær, talegruppe og oppgave. Del det i to sendinger hvis det blir langt: gi første del nå og resten i neste sending.]`, 'instr', 'Oppdraget er startet.');
 }
 function stopScenario(){
@@ -845,7 +847,7 @@ function init(){
   for (const s of SCENARIOS){ const o = document.createElement('option'); o.value = s.id; o.textContent = s.id.replace('case','Case ') + ': ' + s.tittel; qs.append(o); }
   qs.addEventListener('change', () => { sel.value = qs.value; selectScenario(qs.value); prepareVariant(); });
   $('quickStart').addEventListener('click', () => startScenario());
-  $('quickStop').addEventListener('click', () => stopScenario());
+  $('quickStop').addEventListener('click', () => { if (Date.now() - (S.startedAt || 0) < 4000) return; if (confirm('Avslutte oppdraget?')) stopScenario(); });
   selectScenario(store.get('hrs.scen') || SCENARIOS[0].id); sel.value = S.scen.id; qs.value = S.scen.id;
 
   const cs = store.get('hrs.callsign'); if (cs) $('callsign').value = cs;
@@ -912,6 +914,7 @@ function init(){
   $('elKey').addEventListener('input', importPastedLink, true);
   initEngine(); refreshControls(); renderLog();
   $('variantChk').addEventListener('change', prepareVariant);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') prepareVariant(); });
   setTimeout(prepareVariant, 500);
   $('shareBtn').addEventListener('click', shareLink);
   $('showKeys').addEventListener('click', () => {
